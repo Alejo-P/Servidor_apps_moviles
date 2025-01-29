@@ -18,7 +18,9 @@
         </h1>
 
         <div class="flex flex-col items-center align-center h-full m-4 p-4 border border-gray-300 rounded-lg bg-white">
-            <p id="message" class="text-center font-bold mt-4"></p>
+            <div class="flex flex-col items-center">
+                <p id="message" class="text-center font-bold mt-4"></p>
+            </div>
 
             <div class="relative overflow-x-auto shadow-lg sm:rounded-lg m-3 p-3 bg-white w-full">
                 <h2 class="text-2xl text-center text-slate-800 font-bold">
@@ -32,18 +34,16 @@
                     </button>
                 </form>
             </div>
-
-
-            <div class="flex flex-col items-center">
-                <button class="block text-center text-blue-500 font-bold mt-4">
-                    <a href="/views/files" class="text-blue-500 font-bold">
-                        Ver archivos subidos
-                    </a>
-                </button>
-            </div>
-
-
-            <p id="message" class="text-center font-bold mt-4"></p>
+            <a
+                href="/views/files"
+                class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-lg hover:bg-blue-600 transition duration-300"
+                title="Mostrar archivos cargados"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6M9 11h6M9 15h3"/>
+                </svg>
+            </a>
         </div>
 
         <script>
