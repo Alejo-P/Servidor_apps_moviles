@@ -6,57 +6,60 @@
     <title>Lista de PDFs cargados</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
 </head>
-<body>
-    <h1 class="text-4xl text-center text-blue-500 font-bold">
-        Archivos
+<body class="bg-gray-100">
+    <h1 class="text-4xl text-center text-slate-800 uppercase bg-green-300 p-4">
+        Archivos cargados
     </h1>
-
-    <div class="flex flex-col items-center">
-        <table class="border-gray-300 w-1/2 mt-4 rounded-lg border-collapse overflow-hidden">
-            <thead class="bg-gray-200">
-                <tr>
-                    <th class="rounded-tl-lg border border-gray-300 p-2">Nombre</th>
-                    <th class="rounded-tr-lg border border-gray-300 p-2">Acciones</th> <!-- Corregido aquí -->
-                </tr>
-            </thead>
-            <tbody>
-                {% for pdf in files %}
+    
+    <div class="flex flex-col items-center align-center h-full m-4 p-4 border border-gray-300 rounded-lg bg-white">
+        <div class="flex flex-col items-center">
+            <p id="message" class="text-center font-bold mt-4"></p>
+        </div>
+    
+        <div class="relative overflow-x-auto shadow-lg sm:rounded-lg m-3 p-3 bg-white w-full">
+            <table class="border-gray-300 w-full mt-4 rounded-lg border-collapse overflow-hidden">
+                <thead class="bg-gray-200">
                     <tr>
-                        <td class="border border-gray-300 p-2">
-                            <a href="/api/v1/pdf/{{ pdf }}" class="text-blue-500 font-bold">
-                                {{ pdf }}
-                            </a>
-                        </td>
-                        <td class="border border-gray-300 p-2 text-center">
-                            <a class="text-red-500 font-bold" href="javascript:void(0);" onclick="deletePDF('{{ pdf }}')">
-                                Eliminar archivo
-                            </a>
-                        </td>
+                        <th class="rounded-tl-lg border border-gray-300 p-2">Nombre</th>
+                        <th class="rounded-tr-lg border border-gray-300 p-2">Acciones</th> <!-- Corregido aquí -->
                     </tr>
-                {% endfor %}
-
-                {% if files|length == 0 %}
+                </thead>
+                <tbody>
+                    {% for pdf in files %}
+                        <tr>
+                            <td class="border border-gray-300 p-2">
+                                <a href="/api/v1/pdf/{{ pdf }}" class="text-blue-500 font-bold">
+                                    {{ pdf }}
+                                </a>
+                            </td>
+                            <td class="border border-gray-300 p-2 text-center">
+                                <a class="text-red-500 font-bold" href="javascript:void(0);" onclick="deletePDF('{{ pdf }}')">
+                                    Eliminar archivo
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+    
+                    {% if files|length == 0 %}
+                        <tr>
+                            <td class="border border-gray-300 p-2 text-center" colspan="2">
+                                No hay archivos cargados.
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+                <tfoot>
                     <tr>
-                        <td class="border border-gray-300 p-2 text-center" colspan="2">
-                            No hay archivos cargados.
-                        </td>
+                        <td class="rounded-bl-lg border border-gray-300 p-0"></td>
+                        <td class="rounded-br-lg border border-gray-300 p-0"></td>
                     </tr>
-                {% endif %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td class="rounded-bl-lg border border-gray-300 p-0"></td>
-                    <td class="rounded-br-lg border border-gray-300 p-0"></td>
-                </tr>
-            </tfoot>
-        </table>        
-
-        <p id="message" class="text-center font-bold mt-4"></p>
+                </tfoot>
+            </table>        
+        </div>
+        <a href="/views/upload" class="block text-center text-blue-500 font-bold mt-4">
+            Subir otro archivo
+        </a>
     </div>
-
-    <a href="/views/upload" class="block text-center text-blue-500 font-bold mt-4">
-        Subir otro archivo
-    </a>
 
     <script>
         async function deletePDF(pdf) {
@@ -76,6 +79,17 @@
                 // Eliminar la fila de la tabla
                 const row = document.querySelector(`a[href="/api/v1/pdf/${pdf}"]`).parentNode.parentNode;
                 row.parentNode.removeChild(row);
+
+                console.log(document.querySelectorAll("tbody tr").length);
+                // Si no hay más archivos, mostrar mensaje
+                if (document.querySelectorAll("tbody tr").length === 0) {
+                    const table = document.querySelector("table");
+                    const row = table.insertRow(1);
+                    const cell = row.insertCell(0);
+                    cell.colSpan = 2;
+                    cell.classList.add("border", "border-gray-300", "p-2", "text-center");
+                    cell.textContent = "No hay archivos cargados.";
+                }
 
                 setTimeout(() => {
                     document.getElementById("message").textContent = "";
