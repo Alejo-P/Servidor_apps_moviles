@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+</head>
+<body>
+    <h1 class="text-4xl text-center text-blue-500 font-bold">
+        PDFs
+    </h1>
+
+    <ul class="flex flex-col items-center">
+        {% for pdf in files %}
+            <li class="border border-gray-300 p-2 rounded-lg w-1/2 mt-4">
+                <a href="/api/v1/pdf/{{ pdf }}" class="text-blue-500 font-bold">
+                    {{ pdf }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    
+</body>
+</html>

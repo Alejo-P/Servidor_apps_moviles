@@ -1,0 +1,14 @@
+/env
+.env
+
+
+/__pycache__/
+/.vscode/
+/.idea/
+/node_modules/
+*.pyc
+*.pyo
+
+
+*/__pycache__/
+/uploads/

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!<![endif]-->
+<html lang="es">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>Subir un archivo</title>
+        <meta name="description" content="Formulario para subir un archivo al servidor">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    </head>
+    <body>
+        <h1 class="text-4xl text-center text-blue-500 font-bold">
+            Subir un archivo
+        </h1>
+        <form id="uploadForm" class="flex flex-col items-center">
+            <input type="file" name="file" id="fileInput" class="border border-gray-300 p-2 rounded-lg w-1/2">
+            <button type="submit" class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg mt-4">
+                Subir archivo
+            </button>
+        </form>
+
+        <p id="message" class="text-center text-green-500 font-bold mt-4"></p>
+
+        <script>
+            document.getElementById("uploadForm").addEventListener("submit", async function(event) {
+                event.preventDefault(); // Evita que la página se recargue
+
+                const formData = new FormData();
+                const fileInput = document.getElementById("fileInput");
+                
+                if (fileInput.files.length === 0) {
+                    alert("Selecciona un archivo antes de subir.");
+                    return;
+                }
+
+                formData.append("file", fileInput.files[0]);
+
+                try {
+                    const response = await fetch("/api/v1/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        document.getElementById("message").textContent = "Archivo subido exitosamente.";
+                    } else {
+                        document.getElementById("message").textContent = "Error al subir el archivo.";
+                    }
+                } catch (error) {
+                    document.getElementById("message").textContent = "Error de conexión.";
+                }
+            });
+        </script>
+    </body>
+</html>
