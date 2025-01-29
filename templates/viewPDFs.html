@@ -64,7 +64,6 @@
         </div>
     </div>
 
-
     <a
         id="floatingButton"
         href="/views/upload"
@@ -80,6 +79,10 @@
 
     <script>
         async function deletePDF(pdf) {
+            if (!confirm("¿Estás seguro de eliminar este archivo?")) {
+                return;
+            }
+
             const response = await fetch(`/api/v1/delete/${pdf}`, {
                 method: "DELETE"
             });
