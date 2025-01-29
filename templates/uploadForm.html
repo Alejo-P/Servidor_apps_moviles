@@ -23,7 +23,16 @@
             </button>
         </form>
 
-        <p id="message" class="text-center text-green-500 font-bold mt-4"></p>
+        <div class="flex flex-col items-center">
+            <button class="bg-blue-500 text-white font-bold py-2 px-4 rounded-lg mt-4">
+                <a href="/views/files" class="text-white">
+                    Ver archivos subidos
+                </a>
+            </button>
+        </div>
+
+
+        <p id="message" class="text-center font-bold mt-4"></p>
 
         <script>
             document.getElementById("uploadForm").addEventListener("submit", async function(event) {
@@ -46,15 +55,31 @@
                     });
 
                     const result = await response.json();
+                    console.log(result);
+                    document.getElementById("message").classList.remove("text-green-500", "text-red-500");
 
                     if (response.ok) {
-                        document.getElementById("message").textContent = "Archivo subido exitosamente.";
+                        document.getElementById("message").classList.add("text-green-500");
+                        document.getElementById("message").textContent = result.message;
                     } else {
-                        document.getElementById("message").textContent = "Error al subir el archivo.";
+                        document.getElementById("message").textContent = result?.message ? result.message : result.error;
+                        document.getElementById("message").classList.add("text-red-500");
                     }
                 } catch (error) {
-                    document.getElementById("message").textContent = "Error de conexión.";
+                    document.getElementById("message").textContent = error.message;
+                    document.getElementById("message").classList.add("text-red-500");
+                } finally {
+                    fileInput.value = "";
+                    setTimeout(() => {
+                        document.getElementById("message").textContent = "";
+                    }, 3000);
                 }
+            });
+
+            // Ocultar el mensaje cuando se seleccione un archivo
+            document.getElementById("fileInput").addEventListener("change", function() {
+                document.getElementById("message").textContent = "";
+                document.getElementById("message").classList.remove("text-green-500", "text-red-500");
             });
         </script>
     </body>

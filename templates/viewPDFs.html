@@ -3,23 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Lista de PDFs cargados</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
 </head>
 <body>
     <h1 class="text-4xl text-center text-blue-500 font-bold">
-        PDFs
+        Archivos
     </h1>
 
-    <ul class="flex flex-col items-center">
-        {% for pdf in files %}
-            <li class="border border-gray-300 p-2 rounded-lg w-1/2 mt-4">
-                <a href="/api/v1/pdf/{{ pdf }}" class="text-blue-500 font-bold">
-                    {{ pdf }}
-                </a>
-            </li>
-        {% endfor %}
-    </ul>
-    
+    <div class="flex flex-col items-center">
+        <table class="border-gray-300 w-1/2 mt-4 rounded-lg border-collapse overflow-hidden">
+            <thead class="bg-gray-200">
+                <tr>
+                    <th class="rounded-tl-lg border border-gray-300 p-2">Nombre</th>
+                    <th class="rounded-tr-lg border border-gray-300 p-2">Acciones</th> <!-- Corregido aquí -->
+                </tr>
+            </thead>
+            <tbody>
+                {% for pdf in files %}
+                    <tr>
+                        <td class="border border-gray-300 p-2">
+                            <a href="/api/v1/pdf/{{ pdf }}" class="text-blue-500 font-bold">
+                                {{ pdf }}
+                            </a>
+                        </td>
+                        <td class="border border-gray-300 p-2 text-center">
+                            <a class="text-red-500 font-bold" href="javascript:void(0);" onclick="deletePDF('{{ pdf }}')">
+                                Eliminar archivo
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+
+                {% if files|length == 0 %}
+                    <tr>
+                        <td class="border border-gray-300 p-2 text-center" colspan="2">
+                            No hay archivos cargados.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="rounded-bl-lg border border-gray-300 p-0"></td>
+                    <td class="rounded-br-lg border border-gray-300 p-0"></td>
+                </tr>
+            </tfoot>
+        </table>        
+
+        <p id="message" class="text-center font-bold mt-4"></p>
+    </div>
+
+    <a href="/views/upload" class="block text-center text-blue-500 font-bold mt-4">
+        Subir otro archivo
+    </a>
+
+    <script>
+        async function deletePDF(pdf) {
+            const response = await fetch(`/api/v1/delete/${pdf}`, {
+                method: "DELETE"
+            });
+
+            const result = await response.json();
+            console.log(result);
+
+            document.getElementById("message").classList.remove("text-green-500", "text-red-500");
+
+            if (response.ok) {
+                document.getElementById("message").classList.add("text-green-500");
+                document.getElementById("message").textContent = result.message;
+
+                // Eliminar la fila de la tabla
+                const row = document.querySelector(`a[href="/api/v1/pdf/${pdf}"]`).parentNode.parentNode;
+                row.parentNode.removeChild(row);
+
+                setTimeout(() => {
+                    document.getElementById("message").textContent = "";
+                }, 3000);
+
+            } else {
+                document.getElementById("message").textContent = result?.message ? result.message : result.error;
+                document.getElementById("message").classList.add("text-red-500");
+
+                setTimeout(() => {
+                    document.getElementById("message").textContent = "";
+                }, 3000);
+            }
+        }
+    </script>
 </body>
 </html>
