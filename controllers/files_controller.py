@@ -9,7 +9,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in env.ALLOWED_EXTENSIONS
 
 # Ruta para subir archivos
-@files_bp.route("/upload", methods=["POST"]) # /views/upload
+@files_bp.route("/upload", methods=["POST"]) # /api/v1/upload
 def upload_file():
     if 'file' not in request.files:
         return jsonify({"error": "No hay campo de archivo"}), 400
@@ -36,14 +36,22 @@ def upload_file():
     return jsonify({"error": "La extension del archivo no esta permitida"}), 400
 
 # Ruta para visualizar un PDF cargado
-@files_bp.route("/pdf/<filename>", methods=["GET"]) # /api/v1/pdf/<filename>
+@files_bp.route("/pdf/<filename>", methods=["GET"])  # /api/v1/pdf/<filename>
 def view_pdf(filename):
+    # Ruta completa del archivo
+    file_path = os.path.join(env.UPLOAD_FOLDER, filename)
+
     # Verificar si el archivo existe
-    if not os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
+    if not os.path.exists(file_path):
         return jsonify({"error": "Archivo no encontrado"}), 404
 
-    # Servir el archivo PDF
-    return send_from_directory(env.UPLOAD_FOLDER, filename)
+    # Enviar el archivo con los encabezados correctos
+    return send_from_directory(
+        env.UPLOAD_FOLDER,
+        filename,
+        mimetype="application/pdf",
+        as_attachment=False  # Evita la descarga y permite la visualización en navegador
+    )
 
 # Ruta para listar los archivos subidos
 @files_bp.route("/files", methods=["GET"]) # /api/v1/files

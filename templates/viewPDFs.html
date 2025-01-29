@@ -21,25 +21,28 @@
                 <thead class="bg-gray-200">
                     <tr>
                         <th class="rounded-tl-lg border border-gray-300 p-2">Nombre</th>
-                        <th class="rounded-tr-lg border border-gray-300 p-2">Acciones</th> <!-- Corregido aquí -->
+                        <th class="rounded-tr-lg border border-gray-300 p-2">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for pdf in files %}
                         <tr>
                             <td class="border border-gray-300 p-2">
-                                <a href="/api/v1/pdf/{{ pdf }}" class="text-blue-500 font-bold">
+                                <p class="text-blue-500 font-bold">
                                     {{ pdf }}
-                                </a>
+                                </p>
                             </td>
-                            <td class="border border-gray-300 p-2 text-center">
-                                <a class="text-red-500 font-bold" href="javascript:void(0);" onclick="deletePDF('{{ pdf }}')">
+                            <td class="border border-gray-300 p-2 text-center flex justify-around">
+                                <a class="text-blue-500 font-bold cursor-pointer" onclick="viewPDF('{{ pdf }}')">
+                                    Ver archivo
+                                </a>
+                                <a class="text-red-500 font-bold cursor-pointer" onclick="deletePDF('{{ pdf }}')">
                                     Eliminar archivo
                                 </a>
                             </td>
                         </tr>
                     {% endfor %}
-    
+                    
                     {% if files|length == 0 %}
                         <tr>
                             <td class="border border-gray-300 p-2 text-center" colspan="2">
@@ -48,26 +51,32 @@
                         </tr>
                     {% endif %}
                 </tbody>
-                <tfoot>
-                    <tr>
-                        <td class="rounded-bl-lg border border-gray-300 p-0"></td>
-                        <td class="rounded-br-lg border border-gray-300 p-0"></td>
-                    </tr>
-                </tfoot>
             </table>        
         </div>
-        <a
-            href="/views/upload"
-            class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-lg hover:bg-blue-600 transition duration-300 m-0 p-0"
-            title="Subir archivos"
-        >
-            <span class="text-3xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>
-            </span>
-        </a>
     </div>
+
+    <!-- MODAL PARA VISOR PDF -->
+    <div id="pdfModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden">
+            <h2 class="text-2xl text-center text-slate-800 font-bold">Visor de PDF</h2>
+            <!-- Ajustamos el iframe para que ocupe todo el espacio dentro del modal -->
+            <iframe id="pdfViewer" class="w-full h-[500px] mt-4" src="" frameborder="0"></iframe>
+        </div>
+    </div>
+
+
+    <a
+        id="floatingButton"
+        href="/views/upload"
+        class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-lg hover:bg-blue-600 transition duration-300"
+        title="Subir archivos"
+    >
+        <span class="text-3xl">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+        </span>
+    </a>
 
     <script>
         async function deletePDF(pdf) {
@@ -76,33 +85,17 @@
             });
 
             const result = await response.json();
-            console.log(result);
-
             document.getElementById("message").classList.remove("text-green-500", "text-red-500");
 
             if (response.ok) {
                 document.getElementById("message").classList.add("text-green-500");
                 document.getElementById("message").textContent = result.message;
 
-                // Eliminar la fila de la tabla
-                const row = document.querySelector(`a[href="/api/v1/pdf/${pdf}"]`).parentNode.parentNode;
-                row.parentNode.removeChild(row);
-
-                console.log(document.querySelectorAll("tbody tr").length);
-                // Si no hay más archivos, mostrar mensaje
-                if (document.querySelectorAll("tbody tr").length === 0) {
-                    const table = document.querySelector("table");
-                    const row = table.insertRow(1);
-                    const cell = row.insertCell(0);
-                    cell.colSpan = 2;
-                    cell.classList.add("border", "border-gray-300", "p-2", "text-center");
-                    cell.textContent = "No hay archivos cargados.";
-                }
-
                 setTimeout(() => {
                     document.getElementById("message").textContent = "";
                 }, 3000);
 
+                location.reload(); // Recargar la página para actualizar la lista
             } else {
                 document.getElementById("message").textContent = result?.message ? result.message : result.error;
                 document.getElementById("message").classList.add("text-red-500");
@@ -111,6 +104,52 @@
                     document.getElementById("message").textContent = "";
                 }, 3000);
             }
+        }
+
+        function viewPDF(pdfName) {
+            const pdfViewer = document.getElementById("pdfViewer");
+            pdfViewer.src = `/api/v1/pdf/${pdfName}`;
+            document.getElementById("pdfModal").classList.remove("hidden"); // Mostrar modal
+
+            // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)
+            const floatingButton = document.getElementById("floatingButton");
+            floatingButton.href = "javascript:closePDF()";
+            floatingButton.title = "Cerrar visor";
+            floatingButton.classList.remove("bg-blue-500", "hover:bg-blue-600");
+            floatingButton.classList.add("bg-red-500", "hover:bg-red-600");
+            floatingButton.innerHTML = `
+                <span class="text-3xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </span>
+            `;
+
+            // Cerrar el modal al presionar fuera del mismo
+            document.getElementById("pdfModal").addEventListener("click", function(event) {
+                if (event.target.id === "pdfModal") {
+                    closePDF();
+                }
+            });
+        }
+
+        function closePDF() {
+            document.getElementById("pdfModal").classList.add("hidden"); // Ocultar modal
+            document.getElementById("pdfViewer").src = ""; // Limpiar iframe
+
+            // Restaurar el floating button
+            const floatingButton = document.getElementById("floatingButton");
+            floatingButton.href = "/views/upload";
+            floatingButton.title = "Subir archivos";
+            floatingButton.classList.remove("bg-red-500", "hover:bg-red-600");
+            floatingButton.classList.add("bg-blue-500", "hover:bg-blue-600");
+            floatingButton.innerHTML = `
+                <span class="text-3xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                </span>
+            `;
         }
     </script>
 </body>
