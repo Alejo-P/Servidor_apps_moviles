@@ -6,6 +6,7 @@ import os
 from controllers.example_controller import example_bp
 from controllers.files_controller import files_bp
 from views.files_view import upload_bp
+from views.home_view import home_bp
 from config import settings as env
 
 def create_app():
@@ -24,6 +25,7 @@ def create_app():
     CORS(app)
 
     # Registrar Blueprints para organizar las rutas
+    app.register_blueprint(home_bp, url_prefix="/")
     app.register_blueprint(example_bp, url_prefix="/api/v1")
     app.register_blueprint(files_bp, url_prefix="/api/v1")
     app.register_blueprint(upload_bp, url_prefix="/views")

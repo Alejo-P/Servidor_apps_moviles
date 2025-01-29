@@ -6,9 +6,6 @@ upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route("/upload", methods=["GET"]) # /views/upload
 def upload_form():
-    # Servir el archivo HTML del formulario de subida (ubicado en /static/html/uploadForm.html)
-    print('uploadForm.html')
-    
     return render_template('uploadForm.html')
 
 @upload_bp.route("/pdf/<filename>", methods=["GET"]) # /views/pdf/<filename>
