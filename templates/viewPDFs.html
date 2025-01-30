@@ -36,7 +36,7 @@
                             <td class="border border-gray-300 p-2 text-center flex justify-around">
                                 <a
                                     class="text-blue-500 font-bold cursor-pointer"
-                                    onclick="viewPDF(this.getAttribute('data-src'))"
+                                    onclick="viewModal(this.getAttribute('data-src'))"
                                     data-src="{{ pdf['name'] }}"
                                 >
                                     Ver archivo
@@ -78,13 +78,18 @@
         </div>
     </div>
 
-    <!-- MODAL PARA VISOR PDF -->
+    <!-- MODAL PARA VISOR DE ARCHIVOS -->
     <div id="pdfModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
         <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden">
-            <h2 class="text-2xl text-center text-slate-800 font-bold">Visor de PDF</h2>
-            <!-- Ajustamos el iframe para que ocupe todo el espacio dentro del modal -->
-            <iframe id="pdfViewer" class="w-full h-[500px] mt-4" src="" frameborder="0"></iframe>
-            <!-- <canvas id="pdfCanvas"></canvas> -->
+            <h2 class="text-2xl text-center text-slate-800 font-bold"></h2>
+            <!-- Visor para PDFs-->
+            <iframe id="pdfViewer" class="w-full h-[500px] mt-4 hidden" src="" frameborder="0"></iframe>
+
+            <!-- Visor para imagenes-->
+            <img id="imageViewer" class="w-full h-[500px] mt-4 hidden" src="" alt="Imagen">
+
+            <!-- Visor para textos -->
+            <div id="textViewer" class="w-full h-[500px] mt-4 hidden overflow-auto"></div>
         </div>
     </div>
 
@@ -141,9 +146,33 @@
             }
         }
 
-        function viewPDF(pdfName) {
+        function viewModal(pdfName) {
             const pdfViewer = document.getElementById("pdfViewer");
-            pdfViewer.src = `/api/v1/pdf/${pdfName}`;
+            const imageViewer = document.getElementById("imageViewer");
+            const textViewer = document.getElementById("textViewer");
+
+            // Verificar la extension del archivo
+            const extension = pdfName.split(".").pop().toLowerCase();
+            if (extension === "pdf") {
+                pdfViewer.classList.remove("hidden");
+                imageViewer.classList.add("hidden");
+                textViewer.classList.add("hidden");
+
+                pdfViewer.src = `/api/v1/pdf/${pdfName}`;
+            } else if (extension === "jpg" || extension === "jpeg" || extension === "png" || extension === "gif") {
+                imageViewer.classList.remove("hidden");
+                pdfViewer.classList.add("hidden");
+                textViewer.classList.add("hidden");
+
+                imageViewer.src = `/api/v1/image/${pdfName}`;
+            } else {
+                textViewer.classList.remove("hidden");
+                pdfViewer.classList.add("hidden");
+                imageViewer.classList.add("hidden");
+
+                
+            }
+
             document.getElementById("pdfModal").classList.remove("hidden"); // Mostrar modal
 
             // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)

@@ -53,6 +53,32 @@ def view_pdf(filename):
         mimetype="application/pdf",
         as_attachment=False  # Evita la descarga y permite la visualización en navegador
     )
+    
+# Ruta para visualizar un archivo cargado
+@files_bp.route("/file/<filename>", methods=["GET"])  # /api/v1/file/<filename>
+def view_file(filename):
+    # Ruta completa del archivo
+    file_path = os.path.join(env.UPLOAD_FOLDER, filename)
+
+    # Verificar si el archivo existe
+    if not os.path.exists(file_path):
+        return jsonify({"error": "Archivo no encontrado"}), 404
+
+    # Enviar el archivo con los encabezados correctos
+    return send_from_directory(env.UPLOAD_FOLDER, filename)
+
+# Ruta para descargar un archivo cargado
+@files_bp.route("/download/<filename>", methods=["GET"])  # /api/v1/download/<filename>
+def download_file(filename):
+    # Ruta completa del archivo
+    file_path = os.path.join(env.UPLOAD_FOLDER, filename)
+    
+    # Verificar si el archivo existe
+    if not os.path.exists(file_path):
+        return jsonify({"error": "Archivo no encontrado"}), 404
+
+    # Enviar el archivo con los encabezados correctos
+    return send_from_directory(env.UPLOAD_FOLDER, filename, as_attachment=True)
 
 # Ruta para listar los archivos subidos
 @files_bp.route("/files", methods=["GET"]) # /api/v1/files
