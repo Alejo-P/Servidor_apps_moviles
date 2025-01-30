@@ -7,12 +7,12 @@
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
-<body class="bg-gray-100">
-    <h1 class="text-4xl text-center text-slate-800 uppercase bg-green-300 p-4">
+<body class="bg-gray-800">
+    <h1 class="text-4xl text-center text-white font-bold text-slate-800 uppercase bg-green-600 p-4">
         Archivos cargados
     </h1>
     
-    <div class="flex flex-col items-center align-center h-full m-4 p-4 border border-gray-300 rounded-lg bg-white">
+    <div class="flex flex-col items-center align-center h-full m-4 p-4 border border-gray-300 rounded-lg bg-gray-300">
         <div class="flex flex-col items-center">
             <p id="message" class="text-center font-bold mt-4"></p>
         </div>
@@ -83,14 +83,14 @@
         <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden">
             <h2 class="text-2xl text-center text-slate-800 font-bold">Visor de PDF</h2>
             <!-- Ajustamos el iframe para que ocupe todo el espacio dentro del modal -->
-            <!-- <iframe id="pdfViewer" class="w-full h-[500px] mt-4" src="" frameborder="0"></iframe> -->
-            <canvas id="pdfCanvas"></canvas>
+            <iframe id="pdfViewer" class="w-full h-[500px] mt-4" src="" frameborder="0"></iframe>
+            <!-- <canvas id="pdfCanvas"></canvas> -->
         </div>
     </div>
 
     <!-- MODAL PARA VER EL QR -->
     <div id="qrModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-2/4 h-3/4 relative overflow-hidden">
             <h2 class="text-2xl text-center text-slate-800 font-bold">Código QR</h2>
             <img id="qrImage" class="w-full h-[500px] mt-4" src="" alt="Código QR">
         </div>
@@ -99,7 +99,7 @@
     <a
         id="floatingButton"
         href="/views/upload"
-        class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-lg hover:bg-blue-600 transition duration-300"
+        class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] transition-all duration-300 animate-glow"
         title="Subir archivos"
     >
         <span class="text-3xl">
@@ -120,17 +120,17 @@
             });
 
             const result = await response.json();
-            document.getElementById("message").classList.remove("text-green-500", "text-red-500");
+            document.getElementById("message").classList.remove("text-green-700", "text-red-500");
 
             if (response.ok) {
-                document.getElementById("message").classList.add("text-green-500");
+                document.getElementById("message").classList.add("text-green-700");
                 document.getElementById("message").textContent = result.message;
 
                 setTimeout(() => {
                     document.getElementById("message").textContent = "";
+                    location.reload(); // Recargar la página para actualizar la lista
                 }, 3000);
 
-                location.reload(); // Recargar la página para actualizar la lista
             } else {
                 document.getElementById("message").textContent = result?.message ? result.message : result.error;
                 document.getElementById("message").classList.add("text-red-500");
@@ -141,30 +141,10 @@
             }
         }
 
-        function renderPDF(pdfUrl) {
-            pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
-                pdf.getPage(1).then(page => {
-                    const scale = 1.5; // Escalar la página
-                    const viewport = page.getViewport({ scale });
-
-                    const canvas = document.getElementById("pdfCanvas");
-                    const context = canvas.getContext("2d");
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-
-                    const renderContext = {
-                        canvasContext: context,
-                        viewport: viewport
-                    };
-
-                    page.render(renderContext);
-                });
-            });
-        }
-
         function viewPDF(pdfName) {
-            const pdfUrl = `/api/v1/pdf/${pdfName}`;
-            document.getElementById("pdfModal").classList.remove("hidden");
+            const pdfViewer = document.getElementById("pdfViewer");
+            pdfViewer.src = `/api/v1/pdf/${pdfName}`;
+            document.getElementById("pdfModal").classList.remove("hidden"); // Mostrar modal
 
             // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)
             const floatingButton = document.getElementById("floatingButton");
@@ -172,6 +152,11 @@
             floatingButton.title = "Cerrar visor";
             floatingButton.classList.remove("bg-blue-500", "hover:bg-blue-600");
             floatingButton.classList.add("bg-red-500", "hover:bg-red-600");
+
+            // Cambiar el color de la sombra del floating button y darle una transición suave al cambio
+            floatingButton.classList.remove("shadow-[0_0_15px_4px_rgba(59,130,246,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)]");
+            floatingButton.classList.add("shadow-[0_0_15px_4px_rgba(239,68,68,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(239,68,68,1)]");
+
             floatingButton.innerHTML = `
                 <span class="text-3xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -186,14 +171,12 @@
                     closePDF();
                 }
             });
-            renderPDF(pdfUrl);
         }
-
 
         function closePDF() {
             document.getElementById("pdfModal").classList.add("hidden"); // Ocultar modal
-            document.getElementById("pdfCanvas").getContext("2d").clearRect(0, 0, document.getElementById("pdfCanvas").width, document.getElementById("pdfCanvas").height); // Limpiar canvas
-            //document.getElementById("pdfViewer").src = ""; // Limpiar iframe
+            //document.getElementById("pdfCanvas").getContext("2d").clearRect(0, 0, document.getElementById("pdfCanvas").width, document.getElementById("pdfCanvas").height); // Limpiar canvas
+            document.getElementById("pdfViewer").src = ""; // Limpiar iframe
 
 
             // Restaurar el floating button
@@ -202,6 +185,11 @@
             floatingButton.title = "Subir archivos";
             floatingButton.classList.remove("bg-red-500", "hover:bg-red-600");
             floatingButton.classList.add("bg-blue-500", "hover:bg-blue-600");
+
+            // Restaurar el color de la sombra del floating button y darle una transición suave al cambio
+            floatingButton.classList.remove("shadow-[0_0_15px_4px_rgba(239,68,68,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(239,68,68,1)]");
+            floatingButton.classList.add("shadow-[0_0_15px_4px_rgba(59,130,246,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)]");
+
             floatingButton.innerHTML = `
                 <span class="text-3xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -216,8 +204,16 @@
                 method: "GET"
             });
 
+            if (!qr_response) {
+                alert("No se pudo generar el código QR.");
+            }
+
             document.getElementById("qrImage").src = "/api/v1/qr/" + fileName;
             document.getElementById("qrModal").classList.remove("hidden"); // Mostrar modal
+
+            // Cambiar el texto `Generar código QR` por `Ver código QR`
+            const qrLink = document.querySelector(`a[data-name="${fileName}"]`);
+            qrLink.textContent = "Ver código QR";
 
             // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)
             const floatingButton = document.getElementById("floatingButton");
@@ -225,6 +221,11 @@
             floatingButton.title = "Cerrar visor";
             floatingButton.classList.remove("bg-blue-500", "hover:bg-blue-600");
             floatingButton.classList.add("bg-red-500", "hover:bg-red-600");
+
+            // Cambiar el color de la sombra del floating button y darle una transición suave al cambio
+            floatingButton.classList.remove("shadow-[0_0_15px_4px_rgba(59,130,246,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)]");
+            floatingButton.classList.add("shadow-[0_0_15px_4px_rgba(239,68,68,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(239,68,68,1)]");
+
             floatingButton.innerHTML = `
                 <span class="text-3xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -251,6 +252,11 @@
             floatingButton.title = "Subir archivos";
             floatingButton.classList.remove("bg-red-500", "hover:bg-red-600");
             floatingButton.classList.add("bg-blue-500", "hover:bg-blue-600");
+
+            // Restaurar el color de la sombra del floating button y darle una transición suave al cambio
+            floatingButton.classList.remove("shadow-[0_0_15px_4px_rgba(239,68,68,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(239,68,68,1)]");
+            floatingButton.classList.add("shadow-[0_0_15px_4px_rgba(59,130,246,0.7)]", "hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)]");
+
             floatingButton.innerHTML = `
                 <span class="text-3xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

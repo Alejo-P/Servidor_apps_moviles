@@ -6,7 +6,8 @@ upload_bp = Blueprint('upload', __name__)
 
 @upload_bp.route("/upload", methods=["GET"]) # /views/upload
 def upload_form():
-    return render_template('uploadForm.html')
+    files_ext =", ".join(env.ALLOWED_EXTENSIONS) # Unir las extensiones permitidas
+    return render_template('uploadForm.html', extensions=files_ext)
 
 @upload_bp.route("/pdf/<filename>", methods=["GET"]) # /views/pdf/<filename>
 def view_pdf(filename):

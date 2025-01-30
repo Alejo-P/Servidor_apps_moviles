@@ -12,12 +12,12 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     </head>
-    <body class="bg-gray-100">
-        <h1 class="text-4xl text-center text-slate-800 uppercase bg-blue-400 p-4">
+    <body class="bg-gray-800">
+        <h1 class="text-4xl text-center text-white font-bold text-slate-800 uppercase bg-blue-600 p-4">
             Subir un archivo
         </h1>
 
-        <div class="flex flex-col items-center align-center h-full m-4 p-4 border border-gray-300 rounded-lg bg-white">
+        <div class="flex flex-col items-center align-center h-full m-4 p-4 border border-gray-300 rounded-lg bg-gray-300">
             <div class="flex flex-col items-center">
                 <p id="message" class="text-center font-bold mt-4"></p>
             </div>
@@ -27,16 +27,26 @@
                     Selecciona un archivo para subir
                 </h2>
 
-                <form id="uploadForm" class="flex flex-col items-center">
-                    <input type="file" name="file" id="fileInput" class="border border-gray-300 p-2 rounded-lg w-1/2">
-                    <button type="submit" class="block text-center text-blue-500 font-bold mt-4">
-                        Subir archivo
+                <form id="uploadForm" class="flex flex-row items-center justify-center p-4" enctype="multipart/form-data">
+                    <input type="file" name="file" id="fileInput" class="border border-gray-300 p-2 rounded-lg w-1/2 mr-4" title="Selecciona un archivo" required>
+                    <button type="submit" class="block text-center text-blue-500 font-bold p-2 rounded-lg bg-white hover:bg-blue-500 hover:text-white transition-all duration-300">
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 inline-block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                            </svg>
+                            Subir archivo
+                        </span>
                     </button>
                 </form>
+
+                <p class="text-center text-gray-500 mt-4">
+                    <small>Máximo 16 MB</small> <br/>
+                    <small> Las extensiones de archivos permitidas son <span>{{ extensions }}</span></small>
+                </p>
             </div>
             <a
                 href="/views/files"
-                class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-lg hover:bg-blue-600 transition duration-300"
+                class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] transition-all duration-300 animate-glow"
                 title="Mostrar archivos cargados"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -68,10 +78,10 @@
 
                     const result = await response.json();
                     console.log(result);
-                    document.getElementById("message").classList.remove("text-green-500", "text-red-500");
+                    document.getElementById("message").classList.remove("text-green-700", "text-red-500");
 
                     if (response.ok) {
-                        document.getElementById("message").classList.add("text-green-500");
+                        document.getElementById("message").classList.add("text-green-700");
                         document.getElementById("message").textContent = result.message;
                     } else {
                         document.getElementById("message").textContent = result?.message ? result.message : result.error;
@@ -91,7 +101,7 @@
             // Ocultar el mensaje cuando se seleccione un archivo
             document.getElementById("fileInput").addEventListener("change", function() {
                 document.getElementById("message").textContent = "";
-                document.getElementById("message").classList.remove("text-green-500", "text-red-500");
+                document.getElementById("message").classList.remove("text-green-700", "text-red-500");
             });
         </script>
     </body>
