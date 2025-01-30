@@ -1,4 +1,4 @@
-from flask import render_template, Blueprint, send_from_directory, jsonify
+from flask import render_template, Blueprint, send_from_directory, jsonify, url_for
 from config import settings as env
 import os
 
@@ -21,5 +21,16 @@ def view_pdf(filename):
 def list_files():
     # Listar archivos en la carpeta de subida
     files = os.listdir(env.UPLOAD_FOLDER)
+    qr_files = os.listdir(env.QR_FOLDER)
     
-    return render_template("viewPDFs.html", files=files)
+    outputFile = []
+    for f in files:
+        detail = {
+            "name": f,
+            "qr": f""
+        }
+        if f"QR-{f}.png" in qr_files:
+            detail["qr"] = f"{env.HOST}:{env.PORT}{url_for('files.view_pdf', filename=f, _external=True)}"
+        outputFile.append(detail)
+    
+    return render_template("viewPDFs.html", files=outputFile)

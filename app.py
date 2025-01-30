@@ -15,11 +15,13 @@ def create_app():
     
     # Configuración del servidor
     app.config["UPLOAD_FOLDER"] = env.UPLOAD_FOLDER
+    app.config["QR_FOLDER"] = env.QR_FOLDER
     app.config["ALLOWED_EXTENSIONS"] = env.ALLOWED_EXTENSIONS
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB
 
-    # Asegurar que la carpeta de subida existe
+    # Asegurar que la carpeta de subida y de QR existen
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    os.makedirs(app.config["QR_FOLDER"], exist_ok=True)
 
     # Habilitar CORS (permite peticiones desde otros dominios)
     CORS(app)

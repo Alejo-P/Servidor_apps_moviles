@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de PDFs cargados</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 </head>
 <body class="bg-gray-100">
     <h1 class="text-4xl text-center text-slate-800 uppercase bg-green-300 p-4">
@@ -29,14 +30,36 @@
                         <tr>
                             <td class="border border-gray-300 p-2">
                                 <p class="text-blue-500 font-bold">
-                                    {{ pdf }}
+                                    {{ pdf["name"] }}
                                 </p>
                             </td>
                             <td class="border border-gray-300 p-2 text-center flex justify-around">
-                                <a class="text-blue-500 font-bold cursor-pointer" onclick="viewPDF('{{ pdf }}')">
+                                <a
+                                    class="text-blue-500 font-bold cursor-pointer"
+                                    onclick="viewPDF(this.getAttribute('data-src'))"
+                                    data-src="{{ pdf['name'] }}"
+                                >
                                     Ver archivo
                                 </a>
-                                <a class="text-red-500 font-bold cursor-pointer" onclick="deletePDF('{{ pdf }}')">
+
+                                <a
+                                    class="text-green-500 font-bold cursor-pointer"
+                                    onclick="generateQR(this.getAttribute('data-name'), this.getAttribute('data-src'))"
+                                    data-src="{{ pdf['qr'] }}"
+                                    data-name="{{ pdf['name'] }}"
+                                >
+                                    {% if pdf['qr'] %}
+                                        Ver código QR
+                                    {% else %}
+                                        Generar código QR
+                                    {% endif %}
+                                </a>                                
+
+                                <a
+                                    class="text-red-500 font-bold cursor-pointer"
+                                    onclick="deletePDF(this.getAttribute('data-name'))"
+                                    data-name="{{ pdf['name'] }}"
+                                >
                                     Eliminar archivo
                                 </a>
                             </td>
@@ -60,7 +83,16 @@
         <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden">
             <h2 class="text-2xl text-center text-slate-800 font-bold">Visor de PDF</h2>
             <!-- Ajustamos el iframe para que ocupe todo el espacio dentro del modal -->
-            <iframe id="pdfViewer" class="w-full h-[500px] mt-4" src="" frameborder="0"></iframe>
+            <!-- <iframe id="pdfViewer" class="w-full h-[500px] mt-4" src="" frameborder="0"></iframe> -->
+            <canvas id="pdfCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- MODAL PARA VER EL QR -->
+    <div id="qrModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden">
+            <h2 class="text-2xl text-center text-slate-800 font-bold">Código QR</h2>
+            <img id="qrImage" class="w-full h-[500px] mt-4" src="" alt="Código QR">
         </div>
     </div>
 
@@ -109,10 +141,30 @@
             }
         }
 
+        function renderPDF(pdfUrl) {
+            pdfjsLib.getDocument(pdfUrl).promise.then(pdf => {
+                pdf.getPage(1).then(page => {
+                    const scale = 1.5; // Escalar la página
+                    const viewport = page.getViewport({ scale });
+
+                    const canvas = document.getElementById("pdfCanvas");
+                    const context = canvas.getContext("2d");
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport: viewport
+                    };
+
+                    page.render(renderContext);
+                });
+            });
+        }
+
         function viewPDF(pdfName) {
-            const pdfViewer = document.getElementById("pdfViewer");
-            pdfViewer.src = `/api/v1/pdf/${pdfName}`;
-            document.getElementById("pdfModal").classList.remove("hidden"); // Mostrar modal
+            const pdfUrl = `/api/v1/pdf/${pdfName}`;
+            document.getElementById("pdfModal").classList.remove("hidden");
 
             // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)
             const floatingButton = document.getElementById("floatingButton");
@@ -134,11 +186,64 @@
                     closePDF();
                 }
             });
+            renderPDF(pdfUrl);
         }
+
 
         function closePDF() {
             document.getElementById("pdfModal").classList.add("hidden"); // Ocultar modal
-            document.getElementById("pdfViewer").src = ""; // Limpiar iframe
+            document.getElementById("pdfCanvas").getContext("2d").clearRect(0, 0, document.getElementById("pdfCanvas").width, document.getElementById("pdfCanvas").height); // Limpiar canvas
+            //document.getElementById("pdfViewer").src = ""; // Limpiar iframe
+
+
+            // Restaurar el floating button
+            const floatingButton = document.getElementById("floatingButton");
+            floatingButton.href = "/views/upload";
+            floatingButton.title = "Subir archivos";
+            floatingButton.classList.remove("bg-red-500", "hover:bg-red-600");
+            floatingButton.classList.add("bg-blue-500", "hover:bg-blue-600");
+            floatingButton.innerHTML = `
+                <span class="text-3xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                </span>
+            `;
+        }
+
+        async function generateQR(fileName, server) {
+            const qr_response = await fetch(`/api/v1/qr/${fileName}`, {
+                method: "GET"
+            });
+
+            document.getElementById("qrImage").src = "/api/v1/qr/" + fileName;
+            document.getElementById("qrModal").classList.remove("hidden"); // Mostrar modal
+
+            // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)
+            const floatingButton = document.getElementById("floatingButton");
+            floatingButton.href = "javascript:closeQR()";
+            floatingButton.title = "Cerrar visor";
+            floatingButton.classList.remove("bg-blue-500", "hover:bg-blue-600");
+            floatingButton.classList.add("bg-red-500", "hover:bg-red-600");
+            floatingButton.innerHTML = `
+                <span class="text-3xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </span>
+            `;
+
+            // Cerrar el modal al presionar fuera del mismo
+            document.getElementById("qrModal").addEventListener("click", function(event) {
+                if (event.target.id === "qrModal") {
+                    closeQR();
+                }
+            });
+        }
+
+        function closeQR() {
+            document.getElementById("qrModal").classList.add("hidden"); // Ocultar modal
+            document.getElementById("qrImage").src = ""; // Limpiar imagen
 
             // Restaurar el floating button
             const floatingButton = document.getElementById("floatingButton");

@@ -1,5 +1,6 @@
 import os
-from flask import request, jsonify, Blueprint, send_from_directory
+import qrcode
+from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from config import settings as env
 
 files_bp = Blueprint('files', __name__)
@@ -30,7 +31,7 @@ def upload_file():
         if os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
             return jsonify({"error": f"El archivo {filename} ya esta cargado"}), 400
         
-        file.save(os.path.join(env.UPLOAD_FOLDER, filename))
+        file.save(os.path.join(env.UPLOAD_FOLDER, filename.replace(' ', '-')))
         return jsonify({"message": "Archivo cargado exitosamente", "filename": filename}), 200
 
     return jsonify({"error": "La extension del archivo no esta permitida"}), 400
@@ -61,12 +62,42 @@ def list_files():
     
     return jsonify({"files": files}), 200
 
+# Nueva ruta para generar el código QR
+@files_bp.route("/qr/<filename>", methods=["GET"]) # /api/v1/qr/<filename>
+def generate_qr(filename):
+    """Genera un código QR con la URL del archivo PDF"""
+    if not os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
+        return jsonify({"error": "Archivo no encontrado"}), 404
+    
+    # Si ya existe un QR, devolverlo
+    qr_path = os.path.join(env.QR_FOLDER, f"QR-{filename}.png")
+    if os.path.exists(qr_path):
+        return send_from_directory(env.QR_FOLDER, f"QR-{filename}.png")
+
+    # Construye la URL de acceso al PDF
+    file_url = url_for('files.view_pdf', filename=filename, _external=True)
+
+    # Genera el código QR
+    qr = qrcode.make(file_url)
+    
+    # Guarda el QR en un directorio temporal
+    qr_path = os.path.join(env.QR_FOLDER, f"QR-{filename}.png")
+    qr.save(qr_path)
+
+    # Devuelve el QR como archivo
+    return send_from_directory(env.QR_FOLDER, f"QR-{filename}.png")
+
 # Ruta para eliminar un archivo
 @files_bp.route("/delete/<filename>", methods=["DELETE"]) # /api/v1/delete/<filename>
 def delete_file(filename):
     # Verificar si el archivo existe
     if not os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
         return jsonify({"error": "Archivo no encontrado"}), 404
+    
+    # Verificar si existe un QR asociado
+    qr_path = os.path.join(env.QR_FOLDER, f"QR-{filename}.png")
+    if os.path.exists(qr_path):
+        os.remove(qr_path)
 
     # Eliminar el archivo
     os.remove(os.path.join(env.UPLOAD_FOLDER, filename))

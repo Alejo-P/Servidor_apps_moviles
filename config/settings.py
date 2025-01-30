@@ -6,5 +6,6 @@ HOST = "127.0.0.1"
 # Configuración de archivos
 UPLOAD_FOLDER = './uploads'
 STATIC_FOLDER = './static'
+QR_FOLDER = './qrcode'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
