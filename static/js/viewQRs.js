@@ -28,6 +28,48 @@ async function getQRs() {
         qrName.setAttribute("class", "text-center text-blue-500 font-bold w-48 overflow-hidden whitespace-nowrap overflow-ellipsis");
         qrDiv.appendChild(qrName);
 
+        let buttons = document.createElement("div");
+        buttons.setAttribute("class", "flex justify-center space-x-4 mt-4");
+        qrDiv.appendChild(buttons);
+
+        let downloadButton = document.createElement("button");
+        downloadButton.setAttribute("class", "bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline");
+        downloadButton.setAttribute("title", "Descargar QR");
+        downloadButton.innerHTML = `
+            <span class="text-3xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-6-6m6 6l6-6M4 20h16"/>
+                </svg>
+            </span>
+        `;
+        downloadButton.addEventListener("click", async () => {
+            const response = await downloadQR(qr);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = qr;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+        buttons.appendChild(downloadButton);
+
+        let deleteButton = document.createElement("button");
+        deleteButton.setAttribute("class", "bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline");
+        deleteButton.setAttribute("title", "Eliminar QR");
+        deleteButton.innerHTML = `
+            <span class="text-3xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </span>
+        `;
+        deleteButton.addEventListener("click", async () => {
+            deleteQR(qr);
+        });
+        buttons.appendChild(deleteButton);
+
         // Añadir el div al div principal
         qrDivPrincipal.appendChild(qrDiv);
     });
@@ -45,6 +87,10 @@ async function getQR(name) {
 }
 
 async function deleteQR(name) {
+    if (!confirm(`¿Estás seguro de que deseas eliminar el QR ${name}?`)) {
+        return;
+    }
+
     const response = await fetch(`/api/v1/qr/${name}`, {
         method: 'DELETE',
         headers: {
@@ -65,7 +111,8 @@ async function deleteQR(name) {
 
     setTimeout(() => {
         document.getElementById("message").textContent = "";
-        getQRs();
+        // Recargar la página para actualizar la lista
+        window.location.reload();
     }, 3000);
 }
 
