@@ -93,7 +93,7 @@
 
     <!-- MODAL PARA VISOR DE ARCHIVOS -->
     <div id="pdfModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-3/4 h-3/4 relative overflow-hidden flex flex-col items-center">
             <h2 class="text-2xl text-center text-slate-800 font-bold" id="modalTitle"></h2>
             <!-- Visor para PDFs-->
             <iframe
@@ -106,7 +106,7 @@
             <!-- Visor para imagenes-->
             <img
                 id="imageViewer"
-                class="w-full h-[500px] mt-4 hidden border rounded-lg border-orange-300 shadow-[0_0_15px_4px_rgba(216,100,75,0.7)]"
+                class="w-auto h-[500px] mt-4 hidden border-3 p-3 rounded-lg border-gray-300"
                 src=""
                 alt="Imagen"
             >
