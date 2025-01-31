@@ -41,19 +41,34 @@
         </div>
     </div>
 
+    <!-- Modal para la creacion de un QR mediante texto-->
+    <div id="modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black bg-opacity-50">
+        <div class="flex items-center justify-center min-h-screen">
+            <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl text-center text-slate-800 font-bold">Crear un QR</h2>
+                <div class="mt-4">
+                    <label for="text" class="text-slate-800 font-bold">Texto</label>
+                    <input type="text" id="text" class="w-full p-2 border border-gray-300 rounded-lg" />
+                </div>
+                <div class="mt-4">
+                    <button id="createQR" class="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600" onclick="createQR()">Crear QR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="fixed bottom-6 right-6 flex flex-col items-center align-center">
         <a
-            href="/views/files"
-            title="Mostrar QRs"
-            class="bg-slate-500 text-white w-12 h-12 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(130,129,129,0.7)] hover:shadow-[0_0_25px_6px_rgba(130,129,129,1)] hover:scale-110 transition-transform duration-300 animate-glow mb-4"
+            id="floatingButton"
+            href="/views/upload"
+            class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] hover:scale-110 transition-transform duration-300 animate-glow"
+            title="Crear un QR a partir de texto"
         >
-            <!-- SVG para QR-->
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                <rect x="2" y="2" width="6" height="6"/>
-                <rect x="16" y="2" width="6" height="6"/>
-                <rect x="2" y="16" width="6" height="6"/>
-                <rect x="8" y="8" width="8" height="8"/>
-            </svg>
+            <span class="text-3xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+            </span>
         </a>
     </div>
 

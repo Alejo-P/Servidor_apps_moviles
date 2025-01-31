@@ -44,5 +44,27 @@ async function getQR(name) {
     return response;
 }
 
+async function deleteQR(name) {
+    const response = await fetch(`/api/v1/qr/${name}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    return response;
+}
+
+async function downloadQR(name) {
+    const response = await fetch(`/api/v1/download/qr/${name}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    return response;
+}
+
 // Ejecutar la funcion getQRs cuando se cargue la página
 document.addEventListener("DOMContentLoaded", getQRs);
