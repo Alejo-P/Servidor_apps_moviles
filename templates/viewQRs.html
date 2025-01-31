@@ -31,7 +31,7 @@
         </div>
 
         <div class="relative overflow-x-auto shadow-lg sm:rounded-lg m-3 p-3 bg-white w-full">
-            <h2 class="text-2xl text-center text-slate-800 font-bold" onclick="getQRs()">
+            <h2 class="text-2xl text-center text-slate-800 font-bold">
                 QRs generados
             </h2>
 
@@ -42,17 +42,18 @@
     </div>
 
     <!-- Modal para la creacion de un QR mediante texto-->
-    <div id="modal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-black bg-opacity-50">
-        <div class="flex items-center justify-center min-h-screen">
-            <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-lg shadow-lg p-6">
-                <h2 class="text-2xl text-center text-slate-800 font-bold">Crear un QR</h2>
-                <div class="mt-4">
-                    <label for="text" class="text-slate-800 font-bold">Texto</label>
-                    <input type="text" id="text" class="w-full p-2 border border-gray-300 rounded-lg" />
-                </div>
-                <div class="mt-4">
-                    <button id="createQR" class="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600" onclick="createQR()">Crear QR</button>
-                </div>
+    <div id="modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="flex flex-col items-center">
+            <p id="messageModal" class="text-center font-bold mt-4"></p>
+        </div>
+        <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl text-center text-slate-800 font-bold">Crear un QR</h2>
+            <div class="mt-4">
+                <label for="text" class="text-slate-800 font-bold">Texto</label>
+                <input type="text" id="QRtext" class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Ingresa el texto personalizado para generar un QR" required/>
+            </div>
+            <div class="mt-4">
+                <button id="createQR" class="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600" onclick="createQR()">Crear QR</button>
             </div>
         </div>
     </div>
@@ -60,7 +61,7 @@
     <div class="fixed bottom-6 right-6 flex flex-col items-center align-center">
         <a
             id="floatingButton"
-            href="/views/upload"
+            href="javascript:openModal()"
             class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] hover:scale-110 transition-transform duration-300 animate-glow"
             title="Crear un QR a partir de texto"
         >
@@ -72,6 +73,13 @@
         </a>
     </div>
 
+    <div class="fixed bottom-6 left-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] transition-all duration-300 animate-glow">
+        <a href="/" title="Volver al inicio">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+        </a>
+    </div>
     <script src="{{ JSfile }}"></script>
 </body>
 </html>

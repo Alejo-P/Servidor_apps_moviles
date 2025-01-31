@@ -8,7 +8,7 @@ qr_bp = Blueprint('qrController', __name__)
 # Ruta para generar un código QR (A partir de un texto)
 @qr_bp.route("/qr", methods=["POST"])  # /api/v1/qr
 def generate_qr():
-    data = request.json
+    data = request.json or {} # Obtener los datos del cuerpo de la solicitud
 
     if 'text' not in data:
         return jsonify({"error": "No se proporciono el texto"}), 400
@@ -31,7 +31,7 @@ def generate_qr():
     img = qr.make_image(fill_color="black", back_color="white")
 
     # Nombre del archivo
-    filename = f"{text}.png".replace(' ', '_').lower()
+    filename = f"{text}.png".replace(' ', '-').lower()
 
     # Guardar la imagen
     img.save(os.path.join(env.QR_FOLDER, filename))
@@ -57,7 +57,7 @@ def generate_qr_from_file(filename):
     qr = qrcode.make(file_url)
 
     # Nombre del archivo
-    qr_filename = f"{filename}.png".replace(' ', '_').lower()
+    qr_filename = f"{filename}.png".replace(' ', '-').lower()
 
     # Guardar la imagen
     qr.save(os.path.join(env.QR_FOLDER, qr_filename))
