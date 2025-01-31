@@ -171,7 +171,6 @@ async function generateQR(fileName) {
 
     // Cambiar el texto `Generar código QR` por `Ver código QR`
     const qrLink = document.querySelector(`a[data-name="${fileName}"]`);
-    qrLink.textContent = "Ver código QR";
 
     // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)
     const floatingButton = document.getElementById("floatingButton");

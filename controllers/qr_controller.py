@@ -1,42 +1,85 @@
 import os
 import qrcode
+import base64
+from io import BytesIO
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
+from PIL import Image
 from config import settings as env
 
 qr_bp = Blueprint('qrController', __name__)
 
-# Ruta para generar un código QR (A partir de un texto)
-@qr_bp.route("/qr", methods=["POST"])  # /api/v1/qr
+# Ruta para generar un código QR con icono opcional
+@qr_bp.route("/qr", methods=["POST"])
 def generate_qr():
-    data = request.json or {} # Obtener los datos del cuerpo de la solicitud
+    # Detectar si la solicitud es JSON o multipart/form-data
+    if request.content_type.startswith("application/json"):
+        data = request.json or {}
+        text = data.get('text')
+        icon_base64 = data.get('icon')  # Icono en base64
+        icon_img = decode_base64_icon(icon_base64) if icon_base64 else None
+    elif request.content_type.startswith("multipart/form-data"):
+        text = request.form.get('text')
+        icon_file = request.files.get('icon')  # Icono como archivo binario
+        icon_img = Image.open(icon_file) if icon_file else None
+    else:
+        return jsonify({"error": "Formato de solicitud no soportado"}), 400
 
-    if 'text' not in data:
-        return jsonify({"error": "No se proporciono el texto"}), 400
+    if not text:
+        return jsonify({"error": "No se proporcionó el texto"}), 400
 
-    text = data['text']
+    filename = f"{text.replace(' ', '-').lower()}.png"
+    qr_path = os.path.join(env.QR_FOLDER, filename)
 
-    # Crear el objeto QR
+    # Comprobar si el QR ya existe
+    if os.path.exists(qr_path):
+        return jsonify({"error": "QR para ese texto ya generado"}), 400
+
+    # Crear el objeto QR con alta corrección de errores
     qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        version=5,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
         box_size=10,
         border=4,
     )
 
-    # Agregar los datos al objeto QR
     qr.add_data(text)
     qr.make(fit=True)
 
-    # Crear la imagen del código QR
-    img = qr.make_image(fill_color="black", back_color="white")
+    # Generar imagen del código QR
+    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
 
-    # Nombre del archivo
-    filename = f"{text}.png".replace(' ', '-').lower()
+    # 📌 Si hay un icono, agregarlo en el centro
+    if icon_img:
+        qr_img = add_icon_to_qr(qr_img, icon_img)
 
-    # Guardar la imagen
-    img.save(os.path.join(env.QR_FOLDER, filename))
+    # Guardar el QR con icono
+    qr_img.save(qr_path)
 
     return jsonify({"message": "Código QR generado exitosamente", "filename": filename}), 200
+
+# Función para decodificar un icono en base64
+def decode_base64_icon(icon_base64):
+    try:
+        icon_data = base64.b64decode(icon_base64)
+        return Image.open(BytesIO(icon_data))
+    except Exception as e:
+        print(f"Error decodificando icono: {e}")
+        return None  # Si hay error, retorna None y se genera el QR sin icono
+
+# Función para agregar un icono en el centro del QR
+def add_icon_to_qr(qr_img, icon_img):
+    qr_size = qr_img.size[0]
+    icon_size = qr_size // 4  # Ajustar tamaño del icono
+    icon_img = icon_img.resize((icon_size, icon_size), Image.ANTIALIAS)
+
+    # Calcular la posición para centrar el icono
+    icon_position = ((qr_size - icon_size) // 2, (qr_size - icon_size) // 2)
+
+    # Pegar el icono sobre el QR
+    qr_img.paste(icon_img, icon_position, mask=icon_img if icon_img.mode == "RGBA" else None)
+
+    return qr_img
+
 
 # Ruta para generar un código QR (A partir de un archivo)
 @qr_bp.route("/qr/file/<filename>", methods=["GET"])  # /api/v1/qr/file/<filename>

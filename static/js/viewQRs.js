@@ -180,32 +180,63 @@ async function downloadQR(name) {
 }
 
 async function createQR() {
-    let data = document.getElementById("QRtext").value;
-    const response = await fetch('/api/v1/qr', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ text: data })
-    });
+    let text = document.getElementById("QRtext").value.trim();
+    let icon = document.getElementById("QRicon").files[0];
 
-    const jsonResponse = await response.json();
+    let messageModal = document.getElementById("messageModal");
 
-    document.getElementById("messageModal").classList.remove("text-green-700", "text-red-500");
-
-    if (response.ok) {
-        document.getElementById("messageModal").textContent = jsonResponse.message;
-        document.getElementById("messageModal").classList.add("text-green-700");
-    } else {
-        document.getElementById("messageModal").textContent = jsonResponse.message || jsonResponse.error;
-        document.getElementById("messageModal").classList.add("text-red-500");
+    // Validar que el texto no esté vacío
+    if (!text) {
+        messageModal.textContent = "El campo de texto no puede estar vacío";
+        messageModal.classList.add("text-red-500");
+        
+        setTimeout(() => {
+            messageModal.textContent = "";
+            messageModal.classList.remove("text-red-500");
+        }, 3000);
+        return;
     }
 
-    setTimeout(() => {
-        document.getElementById("messageModal").textContent = "";
-        // Recargar la página para actualizar la lista
-        window.location.reload();
-    }, 3000);
+    // Crear FormData y agregar los datos
+    const formData = new FormData();
+    formData.append("text", text);
+    if (icon) {
+        formData.append("icon", icon);
+    }
+
+    try {
+        const response = await fetch('/api/v1/qr', {
+            method: 'POST',
+            body: formData
+        });
+        const jsonResponse = await response.json();
+
+        messageModal.classList.remove("text-green-700", "text-red-500");
+
+        if (response.ok) {
+            messageModal.textContent = jsonResponse.message;
+            messageModal.classList.add("text-green-700");
+        } else {
+            messageModal.textContent = jsonResponse.message || jsonResponse.error;
+            messageModal.classList.add("text-red-500");
+        }
+    } catch (error) {
+        console.error(error);
+
+        messageModal.textContent = "Ocurrió un error al crear el QR";
+        messageModal.classList.add("text-red-500");
+    } finally {
+        document.getElementById("QRtext").value = "";
+        document.getElementById("QRicon").value = "";
+
+        setTimeout(() => {
+            messageModal.textContent = "";
+            if (messageModal.classList.contains("text-green-700")) {
+                // Recargar la página para actualizar la lista
+                location.reload();
+            }
+        }, 3000);
+    }
 }
 
 function openModal() {

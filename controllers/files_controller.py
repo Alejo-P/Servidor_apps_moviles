@@ -24,13 +24,13 @@ def upload_file():
         return jsonify({"error": "Ningun archivo seleccionado"}), 400
 
     if file and allowed_file(file.filename):
-        filename = file.filename
+        filename = file.filename.replace(' ', '-').lower()
         
         # Comprobar si el archivo ya existe
         if os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
             return jsonify({"error": f"El archivo {filename} ya esta cargado"}), 400
         
-        file.save(os.path.join(env.UPLOAD_FOLDER, filename.replace(' ', '-')))
+        file.save(os.path.join(env.UPLOAD_FOLDER, filename))
         return jsonify({"message": "Archivo cargado exitosamente", "filename": filename}), 200
 
     return jsonify({"error": "La extension del archivo no esta permitida"}), 400

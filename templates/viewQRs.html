@@ -52,14 +52,25 @@
 
     <!-- Modal para la creacion de un QR mediante texto-->
     <div id="modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
-        <div class="bg-white w-11/12 md:max-w-md mx-auto rounded-lg shadow-lg p-6">
+        <div class="bg-white w-11/12 md:max-w-lg mx-auto rounded-lg shadow-lg p-6">
             <div class="flex flex-col items-center">
                 <p id="messageModal" class="text-center font-bold mt-4"></p>
             </div>
             <h2 class="text-2xl text-center text-slate-800 font-bold">Crear un QR</h2>
             <div class="mt-4">
-                <label for="text" class="text-slate-800 font-bold">Texto</label>
+                <label for="QRtext" class="text-slate-800 font-bold">Texto</label>
                 <input type="text" id="QRtext" class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Ingresa el texto personalizado para generar un QR" required/>
+            </div>
+            <div class="mt-4">
+                <label for="QRicon" class="text-slate-800 font-bold">Seleccione un icono para el QR (opcional)</label>
+                <input type="file" id="QRicon" class="w-full p-2 border border-gray-300 rounded-lg" accept="image/*" required/>
+                <p class="text-center text-gray-500">
+                    <small>
+                        La imagen debe ser <b>cuadrada</b> (idealmente <b>100x100 px</b>) y estar en <b>formato PNG</b>.  
+                        Evite imágenes demasiado grandes, ya que pueden bloquear el código QR.<br>
+                        Se recomienda un fondo <b>transparente o contrastante</b> con el QR.
+                    </small> <small>El icono debe ser cuadrado y de preferencia en formato PNG</small>
+                </p>
             </div>
             <div class="mt-4">
                 <button id="createQR" class="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600" onclick="createQR()">Crear QR</button>

@@ -35,8 +35,8 @@
             <table class="border-gray-300 w-full mt-4 rounded-lg border-collapse overflow-hidden">
                 <thead class="bg-gray-200">
                     <tr>
-                        <th class="rounded-tl-lg border border-gray-300 p-2">Nombre</th>
-                        <th class="rounded-tr-lg border border-gray-300 p-2">Acciones</th>
+                        <th class="rounded-tl-lg border border-gray-300 p-2 w-2/3">Nombre</th>
+                        <th class="rounded-tr-lg border border-gray-300 p-2 w-1/3">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -47,33 +47,53 @@
                                     {{ pdf["name"] }}
                                 </p>
                             </td>
-                            <td class="border border-gray-300 p-2 text-center flex justify-around">
+                            <td class="grid grid-cols-1 md:grid-cols-3 gap-3 p-2 border border-gray-300">
                                 <a
-                                    class="text-blue-500 font-bold cursor-pointer"
+                                    class="cursor-pointer bg-blue-500 p-2 rounded-lg hover:bg-blue-600 flex items-center justify-center w-4/5 md:w-11/12"
                                     onclick="viewModal(this.getAttribute('data-src'))"
                                     data-src="{{ pdf['name'] }}"
+                                    title="Ver archivo"
                                 >
-                                    Ver archivo
+                                    <span class="text-3xl text-white text-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6M9 11h6M9 15h3"/>
+                                        </svg>
+                                    </span>
                                 </a>
 
                                 <a
-                                    class="text-green-500 font-bold cursor-pointer"
+                                    class="cursor-pointer bg-green-500 p-2 rounded-lg hover:bg-green-600 flex items-center justify-center w-4/5 md:w-11/12"
                                     onclick="generateQR(this.getAttribute('data-name'))"
                                     data-name="{{ pdf['name'] }}"
+                                    title="Generar QR"
                                 >
-                                    {% if pdf['qr'] %}
-                                        Ver código QR
-                                    {% else %}
-                                        Generar código QR
-                                    {% endif %}
+                                    <span class="text-3xl text-white text-center">
+                                        <!-- SVG para QR-->
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                            <rect x="2" y="2" width="6" height="6"/>
+                                            <rect x="16" y="2" width="6" height="6"/>
+                                            <rect x="2" y="16" width="6" height="6"/>
+                                            <rect x="8" y="8" width="8" height="8"/>
+                                            <rect x="16" y="16" width="2" height="2"/>
+                                            <rect x="20" y="20" width="2" height="2"/>
+                                            <rect x="20" y="16" width="2" height="2"/>
+                                            <rect x="16" y="20" width="2" height="2"/>
+                                        </svg> 
+                                    </span>
                                 </a>                                
 
                                 <a
-                                    class="text-red-500 font-bold cursor-pointer"
+                                    class="cursor-pointer bg-red-500 p-2 rounded-lg hover:bg-red-600 flex items-center justify-center w-4/5 md:w-11/12"
                                     onclick="deletePDF(this.getAttribute('data-name'))"
                                     data-name="{{ pdf['name'] }}"
+                                    title="Eliminar archivo"
                                 >
-                                    Eliminar archivo
+                                    <span class="text-3xl text-white text-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </span>
                                 </a>
                             </td>
                         </tr>
@@ -117,7 +137,7 @@
             <!-- Visor para imagenes-->
             <img
                 id="imageViewer"
-                class="w-auto h-[500px] mt-4 hidden border-3 p-3 rounded-lg border-gray-300"
+                class="w-auto h-4/5 md:h-[400px] mt-4 hidden border-3 p-3 rounded-lg border-gray-300"
                 src=""
                 alt="Imagen"
             >
@@ -136,7 +156,7 @@
     <div id="qrModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
         <div class="bg-white p-6 rounded-lg shadow-lg w-2/4 h-3/4 relative overflow-hidden">
             <h2 class="text-2xl text-center text-slate-800 font-bold">Código QR</h2>
-            <img id="qrImage" class="w-full h-[500px] mt-4" src="" alt="Código QR">
+            <img id="qrImage" class="w-auto h-4/5 md:h-[400px] mt-4" src="" alt="Código QR">
         </div>
     </div>
 
