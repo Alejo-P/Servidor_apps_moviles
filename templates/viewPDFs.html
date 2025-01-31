@@ -58,8 +58,7 @@
 
                                 <a
                                     class="text-green-500 font-bold cursor-pointer"
-                                    onclick="generateQR(this.getAttribute('data-name'), this.getAttribute('data-src'))"
-                                    data-src="{{ pdf['qr'] }}"
+                                    onclick="generateQR(this.getAttribute('data-name'))"
                                     data-name="{{ pdf['name'] }}"
                                 >
                                     {% if pdf['qr'] %}

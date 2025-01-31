@@ -122,16 +122,18 @@ function closePDF() {
     `;
 }
 
-async function generateQR(fileName, server) {
-    const qr_response = await fetch(`/api/v1/qr/file/${fileName}`, {
+async function generateQR(fileName) {
+    const response = await fetch(`/api/v1/qr/file/${fileName}`, {
         method: "GET"
     });
 
-    if (!qr_response) {
+    const qr_response = await response.json();
+
+    if (!qr_response.status === 200) {
         alert("No se pudo generar el código QR.");
     }
 
-    document.getElementById("qrImage").src = "/api/v1/qr/file/" + fileName;
+    document.getElementById("qrImage").src = "/api/v1/qr/" + qr_response.filename; // Mostrar imagen en el modal
     document.getElementById("qrModal").classList.remove("hidden"); // Mostrar modal
 
     // Cambiar el texto `Generar código QR` por `Ver código QR`

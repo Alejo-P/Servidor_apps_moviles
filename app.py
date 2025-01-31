@@ -37,6 +37,7 @@ def create_app():
     # Manejo de errores personalizados
     @app.errorhandler(404)
     def page_not_found(error):
+        print(error)
         return jsonify({"error": "Ruta no encontrada"}), 404
 
     @app.errorhandler(405)

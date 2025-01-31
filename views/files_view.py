@@ -10,7 +10,7 @@ def upload_form():
     
     # Ruta al archivo JS
     JSPath = url_for('static', filename='js/viewUpload.js')
-    return render_template('uploadForm.html', extensions=files_ext, JSfile=JSPath)
+    return render_template('viewUpload.html', extensions=files_ext, JSfile=JSPath)
 
 @upload_bp.route("/pdf/<filename>", methods=["GET"]) # /views/pdf/<filename>
 def view_pdf(filename):
@@ -29,12 +29,11 @@ def list_files():
     
     outputFile = []
     for f in files:
-        detail = {
-            "name": f,
-            "qr": f""
-        }
-        if f"QR-{f}.png" in qr_files:
-            detail["qr"] = f"{env.HOST}:{env.PORT}{url_for('filesController.view_file', filename=f, _external=True)}"
+        detail = {"name": f, "qr": False}
+        for qr in qr_files:
+            if f in qr:
+                detail["qr"] = True
+                break
         outputFile.append(detail)
         
     JSPath = url_for('static', filename='js/viewPDFs.js')
