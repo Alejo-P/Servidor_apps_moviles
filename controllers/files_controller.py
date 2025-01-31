@@ -1,10 +1,6 @@
 import os
-import qrcode
-from flask import request, jsonify, Blueprint, send_from_directory, url_for
+from flask import request, jsonify, Blueprint, send_from_directory
 from config import settings as env
-
-# Importar de los controladores la generaciond de QR
-from controllers.qr_controller import generate_qr
 
 files_bp = Blueprint('filesController', __name__)
 

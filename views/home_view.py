@@ -1,5 +1,4 @@
-from flask import render_template, Blueprint, send_from_directory, jsonify
-from config import settings as env
+from flask import render_template, Blueprint
 
 home_bp = Blueprint('home', __name__)
 
