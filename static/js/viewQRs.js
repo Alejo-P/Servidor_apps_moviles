@@ -111,6 +111,7 @@ async function createQR() {
 
 function openModal() {
     document.getElementById("modal").classList.remove("hidden");
+    document.getElementById("backButton").classList.add("hidden");
 
     // Cerrar modal al hacer clic en el floating button (Se convertira en un botón de cerrar)
     const floatingButton = document.getElementById("floatingButton");
@@ -141,6 +142,7 @@ function openModal() {
 
 function closeModal() {
     document.getElementById("modal").classList.add("hidden");
+    document.getElementById("backButton").classList.remove("hidden");
 
     // Restaurar el floating button
     const floatingButton = document.getElementById("floatingButton");
