@@ -58,13 +58,20 @@
             </div>
             <h2 class="text-2xl text-center text-slate-800 font-bold">Crear un QR</h2>
             <div class="mt-4">
+                <label for="QRname" class="text-slate-800 font-bold">Nombre del QR (opcional)</label>
+                <input type="text" id="QRname" class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Ingresa un nombre para el QR"/>
+                <p class="text-gray-500 text-sm">
+                    <small>Este nombre será visible en la lista de QRs generados. Si no se especifica, el nombre sera el nombre del archivo.</small>
+                </p>
+            </div>  
+            <div class="mt-4">
                 <label for="QRtext" class="text-slate-800 font-bold">Texto</label>
                 <input type="text" id="QRtext" class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Ingresa el texto personalizado para generar un QR" required/>
             </div>
             <div class="mt-4">
                 <label for="QRicon" class="text-slate-800 font-bold">Seleccione un icono para el QR (opcional)</label>
                 <input type="file" id="QRicon" class="w-full p-2 border border-gray-300 rounded-lg" accept="image/*" required/>
-                <p class="text-center text-gray-500">
+                <p class="text-gray-500 text-sm">
                     <small>
                         La imagen debe ser <b>cuadrada</b> (idealmente <b>100x100 px</b>) y estar en <b>formato PNG</b>.  
                         Evite imágenes demasiado grandes, ya que pueden bloquear el código QR.<br>

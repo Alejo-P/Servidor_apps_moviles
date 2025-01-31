@@ -11,23 +11,37 @@ qr_bp = Blueprint('qrController', __name__)
 # Ruta para generar un código QR con icono opcional
 @qr_bp.route("/qr", methods=["POST"])
 def generate_qr():
+    name = None
+    name_file = None
+    text = None
+    icon_base64 = None
+    icon_img = None
     # Detectar si la solicitud es JSON o multipart/form-data
     if request.content_type.startswith("application/json"):
         data = request.json or {}
+        name = data.get('name')
         text = data.get('text')
         icon_base64 = data.get('icon')  # Icono en base64
         icon_img = decode_base64_icon(icon_base64) if icon_base64 else None
     elif request.content_type.startswith("multipart/form-data"):
         text = request.form.get('text')
         icon_file = request.files.get('icon')  # Icono como archivo binario
+        name_file = request.form.get('name')  # Nombre del archivo
         icon_img = Image.open(icon_file) if icon_file else None
     else:
         return jsonify({"error": "Formato de solicitud no soportado"}), 400
 
     if not text:
         return jsonify({"error": "No se proporcionó el texto"}), 400
-
-    filename = f"{text.replace(' ', '-').lower()}.png"
+    
+    # Si se proporciona un nombre, se usa ese nombre para el archivo
+    if name:
+        filename = f"{name.replace(' ', '-').lower()}.png"
+    elif name_file:
+        filename = f"{name_file.replace(' ', '-').lower()}.png"
+    else:
+        filename = f"{text.replace(' ', '-').lower()}.png"
+    
     qr_path = os.path.join(env.QR_FOLDER, filename)
 
     # Comprobar si el QR ya existe
@@ -70,7 +84,7 @@ def decode_base64_icon(icon_base64):
 def add_icon_to_qr(qr_img, icon_img):
     qr_size = qr_img.size[0]
     icon_size = qr_size // 4  # Ajustar tamaño del icono
-    icon_img = icon_img.resize((icon_size, icon_size), Image.ANTIALIAS)
+    icon_img = icon_img.resize((icon_size, icon_size), Image.Resampling.BOX)
 
     # Calcular la posición para centrar el icono
     icon_position = ((qr_size - icon_size) // 2, (qr_size - icon_size) // 2)

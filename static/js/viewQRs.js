@@ -182,6 +182,7 @@ async function downloadQR(name) {
 async function createQR() {
     let text = document.getElementById("QRtext").value.trim();
     let icon = document.getElementById("QRicon").files[0];
+    let name = document.getElementById("QRname").value.trim();
 
     let messageModal = document.getElementById("messageModal");
 
@@ -202,6 +203,10 @@ async function createQR() {
     formData.append("text", text);
     if (icon) {
         formData.append("icon", icon);
+    }
+
+    if (name) {
+        formData.append("name", name);
     }
 
     try {
@@ -226,8 +231,6 @@ async function createQR() {
         messageModal.textContent = "Ocurrió un error al crear el QR";
         messageModal.classList.add("text-red-500");
     } finally {
-        document.getElementById("QRtext").value = "";
-        document.getElementById("QRicon").value = "";
 
         setTimeout(() => {
             messageModal.textContent = "";
