@@ -3,6 +3,6 @@ from config import settings as env
 
 home_bp = Blueprint('home', __name__)
 
-@home_bp.route("/home", methods=["GET"]) # /home
+@home_bp.route("/", methods=["GET"]) # /
 def home():
     return render_template('index.html')

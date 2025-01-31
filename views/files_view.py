@@ -2,12 +2,15 @@ from flask import render_template, Blueprint, send_from_directory, jsonify, url_
 from config import settings as env
 import os
 
-upload_bp = Blueprint('upload', __name__)
+upload_bp = Blueprint('filesView', __name__)
 
 @upload_bp.route("/upload", methods=["GET"]) # /views/upload
 def upload_form():
     files_ext =", ".join(env.ALLOWED_EXTENSIONS) # Unir las extensiones permitidas
-    return render_template('uploadForm.html', extensions=files_ext)
+    
+    # Ruta al archivo JS
+    JSPath = url_for('static', filename='js/viewUpload.js')
+    return render_template('uploadForm.html', extensions=files_ext, JSfile=JSPath)
 
 @upload_bp.route("/pdf/<filename>", methods=["GET"]) # /views/pdf/<filename>
 def view_pdf(filename):
@@ -31,7 +34,9 @@ def list_files():
             "qr": f""
         }
         if f"QR-{f}.png" in qr_files:
-            detail["qr"] = f"{env.HOST}:{env.PORT}{url_for('files.view_pdf', filename=f, _external=True)}"
+            detail["qr"] = f"{env.HOST}:{env.PORT}{url_for('filesController.view_file', filename=f, _external=True)}"
         outputFile.append(detail)
+        
+    JSPath = url_for('static', filename='js/viewPDFs.js')
     
-    return render_template("viewPDFs.html", files=outputFile)
+    return render_template("viewPDFs.html", files=outputFile, JSfile=JSPath)

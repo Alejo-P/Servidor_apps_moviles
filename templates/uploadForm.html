@@ -44,9 +44,30 @@
                     <small> Las extensiones de archivos permitidas son <span>{{ extensions }}</span></small>
                 </p>
             </div>
+        </div>
+
+        <div class="fixed bottom-6 right-6 flex flex-col items-center align-center">
             <a
                 href="/views/files"
-                class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] transition-all duration-300 animate-glow"
+                title="Mostrar QRs"
+                class="bg-slate-500 text-white w-12 h-12 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(130,129,129,0.7)] hover:shadow-[0_0_25px_6px_rgba(130,129,129,1)] hover:scale-110 transition-transform duration-300 animate-glow mb-4"
+            >
+                <!-- SVG para QR-->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <rect x="2" y="2" width="6" height="6"/>
+                    <rect x="16" y="2" width="6" height="6"/>
+                    <rect x="2" y="16" width="6" height="6"/>
+                    <rect x="8" y="8" width="8" height="8"/>
+                    <rect x="16" y="16" width="2" height="2"/>
+                    <rect x="20" y="20" width="2" height="2"/>
+                    <rect x="20" y="16" width="2" height="2"/>
+                    <rect x="16" y="20" width="2" height="2"/>
+                </svg>                
+            </a>
+        
+            <a
+                href="/views/files"
+                class="bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] hover:scale-110 transition-transform duration-300 animate-glow"
                 title="Mostrar archivos cargados"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -54,55 +75,16 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6M9 11h6M9 15h3"/>
                 </svg>
             </a>
+        </div>        
+
+        <div class="fixed bottom-6 left-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] transition-all duration-300 animate-glow">
+            <a href="/" title="Volver al inicio">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+            </a>
         </div>
 
-        <script>
-            document.getElementById("uploadForm").addEventListener("submit", async function(event) {
-                event.preventDefault(); // Evita que la página se recargue
-
-                const formData = new FormData();
-                const fileInput = document.getElementById("fileInput");
-                
-                if (fileInput.files.length === 0) {
-                    alert("Selecciona un archivo antes de subir.");
-                    return;
-                }
-
-                formData.append("file", fileInput.files[0]);
-
-                try {
-                    const response = await fetch("/api/v1/upload", {
-                        method: "POST",
-                        body: formData
-                    });
-
-                    const result = await response.json();
-                    console.log(result);
-                    document.getElementById("message").classList.remove("text-green-700", "text-red-500");
-
-                    if (response.ok) {
-                        document.getElementById("message").classList.add("text-green-700");
-                        document.getElementById("message").textContent = result.message;
-                    } else {
-                        document.getElementById("message").textContent = result?.message ? result.message : result.error;
-                        document.getElementById("message").classList.add("text-red-500");
-                    }
-                } catch (error) {
-                    document.getElementById("message").textContent = error.message;
-                    document.getElementById("message").classList.add("text-red-500");
-                } finally {
-                    fileInput.value = "";
-                    setTimeout(() => {
-                        document.getElementById("message").textContent = "";
-                    }, 3000);
-                }
-            });
-
-            // Ocultar el mensaje cuando se seleccione un archivo
-            document.getElementById("fileInput").addEventListener("change", function() {
-                document.getElementById("message").textContent = "";
-                document.getElementById("message").classList.remove("text-green-700", "text-red-500");
-            });
-        </script>
+        <script src="{{ JSfile }}"></script>
     </body>
 </html>
