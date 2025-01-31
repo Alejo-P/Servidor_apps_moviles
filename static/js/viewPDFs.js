@@ -73,16 +73,42 @@ function viewModal(pdfName) {
     imageViewer.classList.add("hidden");
     textViewer.classList.add("hidden");
 
+    let contentModal = document.getElementById("modalContent");
+
+    // Eliminar unicamente las etiquetas <p> que se hayan creado previamente y dejar el resto de elementos
+    const aTags = contentModal.querySelectorAll("a");
+    aTags.forEach(a => a.remove());
+
+    contentModal.classList.remove("h-3/4", "h-4/12");
+
     // Verificar la extension del archivo
     const extension = pdfName.split(".").pop().toLowerCase();
     if (extension === "pdf") {
-        pdfViewer.classList.remove("hidden");
-        pdfViewer.src = `/api/v1/file/${pdfName}`;
         modalTitle.textContent = "Visor de PDF";
+        const isMobile = window.matchMedia("only screen and (max-width: 760px)").matches;
+        // Si es un teléfono, mostrar mensaje y ajustar el tamaño del modal
+        if (isMobile) {
+            let aText = document.createElement("a");
+            aText.href = `/api/v1/file/${pdfName}`;
+            aText.textContent = "Descargar PDF";
+            aText.target = "_blank";
+
+            aText.classList.add("text-center", "text-orange-500", "font-bold", "mt-4");
+            contentModal.appendChild(aText);
+
+            contentModal.classList.add("h-4/12");
+            document.getElementById("pdfModal").style.height = "100vh";
+            
+        } else {
+            contentModal.classList.add("h-3/4");
+            pdfViewer.classList.remove("hidden");
+            pdfViewer.src = `/api/v1/file/${pdfName}`;
+        }
     } else if (extension === "jpg" || extension === "jpeg" || extension === "png" || extension === "gif") {
         imageViewer.classList.remove("hidden");
         imageViewer.src = `/api/v1/file/${pdfName}`;
         modalTitle.textContent = "Visor de imágenes";
+        contentModal.classList.add("h-3/4");
     } else {
         textViewer.classList.remove("hidden");
         fetch(`/api/v1/file/${pdfName}`)
@@ -94,6 +120,7 @@ function viewModal(pdfName) {
                 textViewer.innerHTML = `<span class="text-center text-red-500 font-bold">No se pudo cargar el archivo.</span>`;
             });
         modalTitle.textContent = "Visor de texto";
+        contentModal.classList.add("h-3/4");
     }
 
     document.getElementById("pdfModal").classList.remove("hidden"); // Mostrar modal
