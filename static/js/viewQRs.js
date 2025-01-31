@@ -8,6 +8,28 @@ async function getQRs() {
     data = await response.json();
 
     const qrArray = data.files;
+    let delButton = document.getElementById("deleteAllButton");
+
+    let qrDivPrincipal = document.getElementById("QRs");
+
+    //Remover estilos de flexbox y grid
+    qrDivPrincipal.classList.remove("flex", "flex-col", "items-center", "justify-center");
+    qrDivPrincipal.classList.remove("grid", "grid-cols-1", "md:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4", "gap-4");
+
+    if (qrArray.length > 0) {
+        delButton.classList.remove("hidden");
+        delButton.addEventListener("click", deleteAllQRs);
+
+        qrDivPrincipal.classList.add("grid", "grid-cols-1", "md:grid-cols-2", "lg:grid-cols-3", "xl:grid-cols-4", "gap-4");
+    } else {
+        delButton.classList.add("hidden");
+
+        qrDivPrincipal.classList.add("flex", "flex-col", "items-center", "justify-center");
+        let noQRs = document.createElement("p");
+        noQRs.textContent = "No hay QRs disponibles";
+        noQRs.setAttribute("class", "text-center text-gray-500 w-full h-48 flex items-center justify-center");
+        qrDivPrincipal.appendChild(noQRs);
+    }
 
     qrArray.forEach(async qr => {
         let qrDivPrincipal = document.getElementById("QRs");
@@ -92,6 +114,36 @@ async function deleteQR(name) {
     }
 
     const response = await fetch(`/api/v1/qr/${name}`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    const jsonResponse = await response.json();
+    document.getElementById("message").classList.remove("text-green-700", "text-red-500");
+
+    if (response.ok) {
+        document.getElementById("message").textContent = jsonResponse.message || jsonResponse.error;
+        document.getElementById("message").classList.add("text-green-700");
+    } else {
+        document.getElementById("message").textContent = jsonResponse.message || jsonResponse.error;
+        document.getElementById("message").classList.add("text-red-500");
+    }
+
+    setTimeout(() => {
+        document.getElementById("message").textContent = "";
+        // Recargar la página para actualizar la lista
+        window.location.reload();
+    }, 3000);
+}
+
+async function deleteAllQRs() {
+    if (!confirm("¿Estás seguro de que deseas eliminar todos los QRs?")) {
+        return;
+    }
+
+    const response = await fetch('/api/v1/qrs', {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json'

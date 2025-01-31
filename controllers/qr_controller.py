@@ -109,3 +109,15 @@ def delete_qr(filename):
     os.remove(os.path.join(env.QR_FOLDER, filename))
 
     return jsonify({"message": "Código QR eliminado exitosamente", "filename": filename}), 200
+
+# Ruta para eliminar todos los códigos QR
+@qr_bp.route("/qrs", methods=["DELETE"])  # /api/v1/qrs
+def delete_all_qrs():
+    # Listar archivos en la carpeta de códigos QR
+    files = os.listdir(env.QR_FOLDER)
+
+    # Eliminar los códigos QR
+    for file in files:
+        os.remove(os.path.join(env.QR_FOLDER, file))
+
+    return jsonify({"message": "Códigos QR eliminados exitosamente"}), 200

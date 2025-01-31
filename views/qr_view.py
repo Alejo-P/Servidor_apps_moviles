@@ -1,4 +1,4 @@
-from flask import render_template, Blueprint, send_from_directory, jsonify, url_for
+from flask import render_template, Blueprint, url_for
 from config import settings as env
 import os
 
@@ -9,4 +9,7 @@ def qr_form():
     # Ruta al archivo JS
     JSPath = url_for('static', filename='js/viewQRs.js')
     
-    return render_template('viewQRs.html', JSfile=JSPath)
+    # Ruta de la imagen en static/assets
+    imgPath = url_for('static', filename='assets/delete-forever-svgrepo-com.svg')
+    
+    return render_template('viewQRs.html', JSfile=JSPath, assetDelete=imgPath)

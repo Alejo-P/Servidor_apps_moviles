@@ -77,7 +77,7 @@ def delete_file(filename):
         return jsonify({"error": "Archivo no encontrado"}), 404
     
     # Verificar si existe un QR asociado
-    qr_path = os.path.join(env.QR_FOLDER, f"QR-{filename}.png")
+    qr_path = os.path.join(env.QR_FOLDER, f"{filename.replace(' ', '-').lower()}.png")
     if os.path.exists(qr_path):
         os.remove(qr_path)
 
