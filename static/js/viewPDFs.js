@@ -29,6 +29,39 @@ async function deletePDF(pdf) {
     }
 }
 
+async function deleteAllPDFs() {
+    if (!confirm("¿Estás seguro de eliminar todos los archivos?")) {
+        return;
+    }
+
+    const response = await fetch("/api/v1/delete/all", {
+        method: "DELETE"
+    });
+
+    const result = await response.json();
+    document.getElementById("message").classList.remove("text-green-700", "text-red-500");
+
+    if (response.ok) {
+        document.getElementById("message").classList.add("text-green-700");
+        document.getElementById("message").textContent = result.message;
+
+        setTimeout(() => {
+            document.getElementById("message").textContent = "";
+            location.reload(); // Recargar la página para actualizar la lista
+        }, 3000);
+
+    } else {
+        document.getElementById("message").textContent = result?.message ? result.message : result.error;
+        document.getElementById("message").classList.add("text-red-500");
+
+        setTimeout(() => {
+            document.getElementById("message").textContent = "";
+            // Recargar la página para actualizar la lista
+            location.reload();
+        }, 3000);
+    }
+}
+
 function viewModal(pdfName) {
     const pdfViewer = document.getElementById("pdfViewer");
     const imageViewer = document.getElementById("imageViewer");
@@ -190,3 +223,11 @@ function closeQR() {
         </span>
     `;
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    const delButton = document.getElementById("deleteAllButton");
+
+    if (delButton) {
+        delButton.addEventListener("click", deleteAllPDFs);
+    }
+});

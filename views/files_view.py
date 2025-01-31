@@ -37,5 +37,6 @@ def list_files():
         outputFile.append(detail)
         
     JSPath = url_for('static', filename='js/viewPDFs.js')
+    imgPath = url_for('static', filename='assets/delete-forever-svgrepo-com.svg')
     
-    return render_template("viewPDFs.html", files=outputFile, JSfile=JSPath)
+    return render_template("viewPDFs.html", files=outputFile, JSfile=JSPath, assetDelete=imgPath)

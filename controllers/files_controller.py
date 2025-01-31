@@ -85,3 +85,20 @@ def delete_file(filename):
     os.remove(os.path.join(env.UPLOAD_FOLDER, filename))
     
     return jsonify({"message": "Archivo eliminado exitosamente", "filename": filename}), 200
+
+# Ruta para eliminar todos los archivos
+@files_bp.route("/delete/all", methods=["DELETE"]) # /api/v1/delete/all
+def delete_all_files():
+    # Listar archivos en la carpeta de subida
+    files = os.listdir(env.UPLOAD_FOLDER)
+    
+    # Eliminar archivos
+    for file in files:
+        os.remove(os.path.join(env.UPLOAD_FOLDER, file))
+        
+        # Verificar si existe un QR asociado
+        qr_path = os.path.join(env.QR_FOLDER, f"{file.replace(' ', '-').lower()}.png")
+        if os.path.exists(qr_path):
+            os.remove(qr_path)
+    
+    return jsonify({"message": "Archivos eliminados exitosamente"}), 200

@@ -38,17 +38,16 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4" id="QRs">
                 <!-- Aquí se insertarán los QRs -->
             </div>
-
-            <div id="deleteAllButton" class="flex justify-center hidden">
-                <button id="deleteAll" class="flex bg-red-500 text-white p-2 rounded-lg hover:bg-red-600" title="Eliminar todos">
-                    <span class="text-2xl text-white">
-                        <!-- Imagen con trazos blancos-->
-                        <img src="{{ assetDelete }}" class="h-8 w-8 invert" alt="Eliminar todos">
-                    </span>
-                    <p class="mt-1 font-bold">Eliminar todos</p>
-                </button>
-            </div>                        
         </div>
+        <div id="deleteAllButton" class="flex justify-center hidden">
+            <button id="deleteAll" class="flex bg-red-500 text-white p-2 rounded-lg hover:bg-red-600" title="Eliminar todos">
+                <span class="text-2xl text-white">
+                    <!-- Imagen con trazos blancos-->
+                    <img src="{{ assetDelete }}" class="h-8 w-8 invert" alt="Eliminar todos">
+                </span>
+                <p class="mt-1 font-bold">Eliminar todos</p>
+            </button>
+        </div>                        
     </div>
 
     <!-- Modal para la creacion de un QR mediante texto-->
