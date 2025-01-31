@@ -3,6 +3,7 @@ document.getElementById("uploadForm").addEventListener("submit", async function(
 
     const formData = new FormData();
     const fileInput = document.getElementById("fileInput");
+    const uploadButton = document.getElementById("uploadBtn");
     
     if (fileInput.files.length === 0) {
         alert("Selecciona un archivo antes de subir.");
@@ -12,6 +13,10 @@ document.getElementById("uploadForm").addEventListener("submit", async function(
     formData.append("file", fileInput.files[0]);
 
     try {
+        // Deshabilitar el botón de subir mientras se procesa la petición y cambiar el texto e icono
+        uploadButton.disabled = true;
+        uploadButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+
         const response = await fetch("/api/v1/upload", {
             method: "POST",
             body: formData
@@ -33,6 +38,10 @@ document.getElementById("uploadForm").addEventListener("submit", async function(
         document.getElementById("message").classList.add("text-red-500");
     } finally {
         fileInput.value = "";
+
+        // Habilitar el botón de subir y cambiar el texto e icono
+        uploadButton.disabled = false;
+        uploadButton.innerHTML = '<i class="fas fa-upload"></i> Subir archivo';
         setTimeout(() => {
             document.getElementById("message").textContent = "";
         }, 3000);

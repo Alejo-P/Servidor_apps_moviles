@@ -6,6 +6,7 @@
     <title>Lista de PDFs cargados</title>
     <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         .animate-glow {
             animation: glow 1.5s infinite alternate;
@@ -54,11 +55,8 @@
                                     data-src="{{ pdf['name'] }}"
                                     title="Ver archivo"
                                 >
-                                    <span class="text-3xl text-white text-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6M9 11h6M9 15h3"/>
-                                        </svg>
+                                    <span class="text-xl text-white text-center">
+                                        <i class="fa-regular fa-file-lines"></i>
                                     </span>
                                 </a>
 
@@ -68,18 +66,8 @@
                                     data-name="{{ pdf['name'] }}"
                                     title="Generar QR"
                                 >
-                                    <span class="text-3xl text-white text-center">
-                                        <!-- SVG para QR-->
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                                            <rect x="2" y="2" width="6" height="6"/>
-                                            <rect x="16" y="2" width="6" height="6"/>
-                                            <rect x="2" y="16" width="6" height="6"/>
-                                            <rect x="8" y="8" width="8" height="8"/>
-                                            <rect x="16" y="16" width="2" height="2"/>
-                                            <rect x="20" y="20" width="2" height="2"/>
-                                            <rect x="20" y="16" width="2" height="2"/>
-                                            <rect x="16" y="20" width="2" height="2"/>
-                                        </svg> 
+                                    <span class="text-xl text-white text-center">
+                                        <i class="fa-solid fa-qrcode"></i>
                                     </span>
                                 </a>                                
 
@@ -89,10 +77,8 @@
                                     data-name="{{ pdf['name'] }}"
                                     title="Eliminar archivo"
                                 >
-                                    <span class="text-3xl text-white text-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
+                                    <span class="text-xl text-white text-center">
+                                        <i class="fa-regular fa-trash-can"></i>
                                     </span>
                                 </a>
                             </td>
@@ -163,14 +149,10 @@
     <a
         id="floatingButton"
         href="/views/upload"
-        class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(59,130,246,0.7)] hover:shadow-[0_0_25px_6px_rgba(59,130,246,1)] hover:scale-110 transition-transform duration-300 animate-glow"
+        class="fixed bottom-6 right-6 bg-blue-500 text-white w-14 h-14 flex items-center text-center justify-center rounded-lg shadow-[0_0_15px_4px_rgba(130,129,129,0.7)] hover:shadow-[0_0_25px_6px_rgba(130,129,129,1)] hover:scale-110 transition-transform duration-300 animate-all mb-4"
         title="Subir archivos"
     >
-        <span class="text-3xl">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-        </span>
+        <i class="fa-solid fa-upload text-xl"></i>
     </a>
 
     <script src="{{ JSfile }}"></script>

@@ -58,10 +58,8 @@ async function getQRs() {
         downloadButton.setAttribute("class", "bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline");
         downloadButton.setAttribute("title", "Descargar QR");
         downloadButton.innerHTML = `
-            <span class="text-3xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v12m0 0l-6-6m6 6l6-6M4 20h16"/>
-                </svg>
+            <span class="text-xl">
+                <i class="fa-solid fa-download"></i>
             </span>
         `;
         downloadButton.addEventListener("click", async () => {
@@ -81,10 +79,8 @@ async function getQRs() {
         deleteButton.setAttribute("class", "bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline");
         deleteButton.setAttribute("title", "Eliminar QR");
         deleteButton.innerHTML = `
-            <span class="text-3xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
+            <span class="text-xl">
+                <i class="fa-solid fa-trash-can"></i>
             </span>
         `;
         deleteButton.addEventListener("click", async () => {
