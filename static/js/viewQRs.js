@@ -183,6 +183,7 @@ async function createQR() {
     let text = document.getElementById("QRtext").value.trim();
     let icon = document.getElementById("QRicon").files[0];
     let name = document.getElementById("QRname").value.trim();
+    let botonCrear = document.getElementById("createQR");
 
     let messageModal = document.getElementById("messageModal");
 
@@ -210,6 +211,10 @@ async function createQR() {
     }
 
     try {
+        // Cambiar el texto del botón de crear QR y deshabilitarlo
+        botonCrear.textContent = "Creando QR...";
+        botonCrear.disabled = true;
+
         const response = await fetch('/api/v1/qr', {
             method: 'POST',
             body: formData
@@ -231,9 +236,12 @@ async function createQR() {
         messageModal.textContent = "Ocurrió un error al crear el QR";
         messageModal.classList.add("text-red-500");
     } finally {
-
         setTimeout(() => {
             messageModal.textContent = "";
+
+            // Restaurar el texto del botón de crear QR y habilitarlo
+            botonCrear.textContent = "Crear QR";
+            botonCrear.disabled = false;
             if (messageModal.classList.contains("text-green-700")) {
                 // Recargar la página para actualizar la lista
                 location.reload();
