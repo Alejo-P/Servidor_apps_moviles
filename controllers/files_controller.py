@@ -83,7 +83,7 @@ def list_files():
     return jsonify({"files": files}), 200
 
 # Ruta para eliminar un archivo
-@files_bp.route("/delete/<filename>", methods=["DELETE"]) # /api/v1/delete/<filename>
+@files_bp.route("/delete/file/<filename>", methods=["DELETE"]) # /api/v1/delete/<filename>
 def delete_file(filename):
     # Verificar si el archivo existe
     if not os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
