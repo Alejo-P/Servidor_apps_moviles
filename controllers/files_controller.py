@@ -1,5 +1,5 @@
 import os
-from flask import request, jsonify, Blueprint, send_from_directory
+from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from config import settings as env
 
 files_bp = Blueprint('filesController', __name__)
@@ -34,10 +34,10 @@ def upload_file():
         return jsonify({"message": "Archivo cargado exitosamente", "filename": filename}), 200
 
     return jsonify({"error": "La extension del archivo no esta permitida"}), 400
-    
-# Ruta para visualizar un archivo cargado
-@files_bp.route("/file/<filename>", methods=["GET"])  # /api/v1/file/<filename>
-def view_file(filename):
+
+# Ruta para obtener un archivo cargado
+@files_bp.route("/file/<filename>", methods=["GET"]) # /api/v1/file/<filename>
+def get_file(filename):
     # Ruta completa del archivo
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
 
@@ -45,11 +45,11 @@ def view_file(filename):
     if not os.path.exists(file_path):
         return jsonify({"error": "Archivo no encontrado"}), 404
 
-    # Enviar el archivo con los encabezados correctos
-    return send_from_directory(env.UPLOAD_FOLDER, filename)
+    # Servir la URL de acceso al archivo
+    return jsonify({"url": url_for('filesController.view_file', filename=filename, _external=True), "filename": filename}), 200
 
 # Ruta para descargar un archivo cargado
-@files_bp.route("/download/<filename>", methods=["GET"])  # /api/v1/download/<filename>
+@files_bp.route("/download/file/<filename>", methods=["GET"])  # /api/v1/download/<filename>
 def download_file(filename):
     # Ruta completa del archivo
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
@@ -60,6 +60,19 @@ def download_file(filename):
 
     # Enviar el archivo con los encabezados correctos
     return send_from_directory(env.UPLOAD_FOLDER, filename, as_attachment=True)
+
+# Ruta para visualizar un archivo cargado
+@files_bp.route("/view/file/<filename>", methods=["GET"])  # /api/v1/file/<filename>
+def view_file(filename):
+    # Ruta completa del archivo
+    file_path = os.path.join(env.UPLOAD_FOLDER, filename)
+
+    # Verificar si el archivo existe
+    if not os.path.exists(file_path):
+        return jsonify({"error": "Archivo no encontrado"}), 404
+
+    # Enviar el archivo con los encabezados correctos
+    return send_from_directory(env.UPLOAD_FOLDER, filename)
 
 # Ruta para listar los archivos subidos
 @files_bp.route("/files", methods=["GET"]) # /api/v1/files

@@ -121,7 +121,7 @@ def generate_qr_from_file(filename):
 
     return jsonify({"message": "Código QR generado exitosamente", "filename": qr_filename}), 200
 
-# Ruta para visualizar un código QR
+# Ruta para obtener un código QR
 @qr_bp.route("/qr/<filename>", methods=["GET"])
 def view_qr(filename):
     # Convertimos el nombre a minúsculas para evitar problemas de coincidencia
@@ -131,8 +131,8 @@ def view_qr(filename):
     if not os.path.exists(file_path):
         return jsonify({"error": "QR no encontrado"}), 404
 
-    # Servir el archivo desde la carpeta correcta
-    return send_from_directory(env.QR_FOLDER, filename, mimetype='image/png')
+    # Servir la URL de acceso al archivo
+    return jsonify({"url": url_for('qrController.view_qr_image', filename=filename, _external=True), "filename": filename}), 200 # /api/v1/view/qr/<filename>
 
 # Ruta para descargar un código QR
 @qr_bp.route("/download/qr/<filename>", methods=["GET"])  # /api/v1/download/qr/<filename>
@@ -146,6 +146,19 @@ def download_qr(filename):
 
     # Enviar el archivo con los encabezados correctos
     return send_from_directory(env.QR_FOLDER, filename, as_attachment=True, mimetype='image/png')
+
+# Ruta para visualizar un código QR
+@qr_bp.route("/view/qr/<filename>", methods=["GET"])  # /api/v1/view/qr/<filename>
+def view_qr_image(filename):
+    # Convertimos el nombre a minúsculas para evitar problemas de coincidencia
+    filename = filename.lower()
+    file_path = os.path.join(env.QR_FOLDER, filename)
+
+    if not os.path.exists(file_path):
+        return jsonify({"error": "QR no encontrado"}), 404
+
+    # Servir la imagen del código QR
+    return send_from_directory(env.QR_FOLDER, filename, mimetype='image/png')
 
 # Ruta para listar los códigos QR generados
 @qr_bp.route("/qrs", methods=["GET"])  # /api/v1/qrs
