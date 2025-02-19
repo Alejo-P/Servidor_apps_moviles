@@ -16,60 +16,64 @@ def generate_qr():
     text = None
     icon_base64 = None
     icon_img = None
-    # Detectar si la solicitud es JSON o multipart/form-data
-    if request.content_type.startswith("application/json"):
-        data = request.json or {}
-        name = data.get('name')
-        text = data.get('text')
-        icon_base64 = data.get('icon')  # Icono en base64
-        icon_img = decode_base64_icon(icon_base64) if icon_base64 else None
-    elif request.content_type.startswith("multipart/form-data"):
-        text = request.form.get('text')
-        icon_file = request.files.get('icon')  # Icono como archivo binario
-        name_file = request.form.get('name')  # Nombre del archivo
-        icon_img = Image.open(icon_file) if icon_file else None
-    else:
-        return jsonify({"error": "Formato de solicitud no soportado"}), 400
+    try:
+        # Detectar si la solicitud es JSON o multipart/form-data
+        if request.content_type.startswith("application/json"):
+            data = request.json or {}
+            name = data.get('name')
+            text = data.get('text')
+            icon_base64 = data.get('icon')  # Icono en base64
+            icon_img = decode_base64_icon(icon_base64) if icon_base64 else None
+        elif request.content_type.startswith("multipart/form-data"):
+            text = request.form.get('text')
+            icon_file = request.files.get('icon')  # Icono como archivo binario
+            name_file = request.form.get('name')  # Nombre del archivo
+            icon_img = Image.open(icon_file) if icon_file else None
+        else:
+            return jsonify({"error": "Formato de solicitud no soportado"}), 400
 
-    if not text:
-        return jsonify({"error": "No se proporcionó el texto"}), 400
+        if not text:
+            return jsonify({"error": "No se proporcionó el texto"}), 400
+        
+        # Si se proporciona un nombre, se usa ese nombre para el archivo
+        if name:
+            filename = f"{name.replace(' ', '-').lower()}.png"
+        elif name_file:
+            filename = f"{name_file.replace(' ', '-').lower()}.png"
+        else:
+            filename = f"{text.replace(' ', '-').lower()}.png"
+        
+        qr_path = os.path.join(env.QR_FOLDER, filename)
+
+        # Comprobar si el QR ya existe
+        if os.path.exists(qr_path):
+            return jsonify({"error": "QR para ese texto ya generado"}), 400
     
-    # Si se proporciona un nombre, se usa ese nombre para el archivo
-    if name:
-        filename = f"{name.replace(' ', '-').lower()}.png"
-    elif name_file:
-        filename = f"{name_file.replace(' ', '-').lower()}.png"
-    else:
-        filename = f"{text.replace(' ', '-').lower()}.png"
-    
-    qr_path = os.path.join(env.QR_FOLDER, filename)
+        # Crear el objeto QR con alta corrección de errores
+        qr = qrcode.QRCode(
+            version=5,
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=10,
+            border=4,
+        )
 
-    # Comprobar si el QR ya existe
-    if os.path.exists(qr_path):
-        return jsonify({"error": "QR para ese texto ya generado"}), 400
+        qr.add_data(text)
+        qr.make(fit=True)
 
-    # Crear el objeto QR con alta corrección de errores
-    qr = qrcode.QRCode(
-        version=5,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,
-        box_size=10,
-        border=4,
-    )
+        # Generar imagen del código QR
+        qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
 
-    qr.add_data(text)
-    qr.make(fit=True)
+        # 📌 Si hay un icono, agregarlo en el centro
+        if icon_img:
+            qr_img = add_icon_to_qr(qr_img, icon_img)
 
-    # Generar imagen del código QR
-    qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
+        # Guardar el QR con icono
+        qr_img.save(qr_path)
 
-    # 📌 Si hay un icono, agregarlo en el centro
-    if icon_img:
-        qr_img = add_icon_to_qr(qr_img, icon_img)
+        return jsonify({"message": "Código QR generado exitosamente", "filename": filename}), 200
+    except:
+        return jsonify({"message": "Error al generar el código QR"}), 500
 
-    # Guardar el QR con icono
-    qr_img.save(qr_path)
-
-    return jsonify({"message": "Código QR generado exitosamente", "filename": filename}), 200
 
 # Función para decodificar un icono en base64
 def decode_base64_icon(icon_base64):
@@ -96,7 +100,7 @@ def add_icon_to_qr(qr_img, icon_img):
 
 
 # Ruta para generar un código QR (A partir de un archivo)
-@qr_bp.route("/qr/file/<filename>", methods=["GET"])  # /api/v1/qr/file/<filename>
+@qr_bp.route("/qr/file/<filename>", methods=["POST"])  # /api/v1/qr/file/<filename>
 def generate_qr_from_file(filename):
     # Verificar si el archivo existe
     if not os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
@@ -106,20 +110,23 @@ def generate_qr_from_file(filename):
     qr_path = os.path.join(env.QR_FOLDER, f"{filename}.png")
     if os.path.exists(qr_path):
         return jsonify({"message": "Código QR ya generado", "filename": f"{filename}.png"}), 200
+    
+    try:    
+        # Construye la URL de acceso al archivo
+        file_url = url_for('filesController.view_file', filename=filename, _external=True)
 
-    # Construye la URL de acceso al archivo
-    file_url = url_for('filesController.view_file', filename=filename, _external=True)
+        # Genera el código QR
+        qr = qrcode.make(file_url)
 
-    # Genera el código QR
-    qr = qrcode.make(file_url)
+        # Nombre del archivo
+        qr_filename = f"{filename}.png".replace(' ', '-').lower()
 
-    # Nombre del archivo
-    qr_filename = f"{filename}.png".replace(' ', '-').lower()
+        # Guardar la imagen
+        qr.save(os.path.join(env.QR_FOLDER, qr_filename))
 
-    # Guardar la imagen
-    qr.save(os.path.join(env.QR_FOLDER, qr_filename))
-
-    return jsonify({"message": "Código QR generado exitosamente", "filename": qr_filename}), 200
+        return jsonify({"message": "Código QR generado exitosamente", "filename": qr_filename}), 200
+    except:
+        return jsonify({"message": "Error al generar el código QR"}), 500
 
 # Ruta para obtener un código QR
 @qr_bp.route("/qr/<filename>", methods=["GET"])
