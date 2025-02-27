@@ -8,8 +8,14 @@
 /node_modules/
 *.pyc
 *.pyo
+*.spec
+*.orig
+*.log
+conf.json
 
 
 */__pycache__/
 /uploads/
 /qrcode/
+/build/
+/dist/
