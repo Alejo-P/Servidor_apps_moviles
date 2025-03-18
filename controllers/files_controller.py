@@ -1,6 +1,7 @@
 import os
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from config import settings as env
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 files_bp = Blueprint('filesController', __name__)
 
@@ -10,7 +11,15 @@ def allowed_file(filename):
 
 # Ruta para subir archivos
 @files_bp.route("/upload", methods=["POST"]) # /api/v1/upload
+@jwt_required()
 def upload_file():
+    auth_header = request.headers.get("Authorization", "")
+    print(f"Token recibido: {auth_header}")  # Agrega esta línea para depurar
+    
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
     if 'file' not in request.files:
         return jsonify({"error": "No hay campo de archivo"}), 400
 

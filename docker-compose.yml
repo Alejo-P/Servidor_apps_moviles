@@ -1,0 +1,55 @@
+services:
+  servidor-python:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servidor-python
+    ports:
+      - "5000:5000"
+    networks:
+      - red
+    depends_on:
+      mysql-server:
+        condition: service_healthy
+
+  mysql-server:
+    image: mysql:8.0
+    container_name: mysql-server
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: doctools
+      MYSQL_USER: user
+      MYSQL_PASSWORD: pass
+    ports:
+      - "3306:3306"
+    networks:
+      - red
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    volumes:
+      - ./mysql:/var/lib/mysql
+
+  phpmyadmin-server:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin-server
+    environment:
+      PMA_HOST: mysql-server
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8080:80"
+    networks:
+      - red
+    depends_on:
+      mysql-server:
+        condition: service_healthy
+    
+networks:
+  red:
+    driver: bridge
+
+volumes:
+  mysql:
