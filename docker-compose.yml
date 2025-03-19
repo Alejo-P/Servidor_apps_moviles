@@ -11,15 +11,26 @@ services:
     depends_on:
       mysql-server:
         condition: service_healthy
+    volumes:
+      - .:/app:cached  # 🔥 Usa un volumen administrado por Docke r
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_ENV=${FLASK_ENV}
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_PORT=${DB_PORT}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ACCESS_TOKEN_EXPIRES_IN=${JWT_ACCESS_TOKEN_EXPIRES_IN}
+      - JWT_REFRESH_TOKEN_EXPIRES_IN=${JWT_REFRESH_TOKEN_EXPIRES_IN}
 
   mysql-server:
     image: mysql:8.0
     container_name: mysql-server
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: doctools
-      MYSQL_USER: user
-      MYSQL_PASSWORD: pass
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
     ports:
       - "3306:3306"
     networks:
@@ -31,14 +42,14 @@ services:
       retries: 5
       start_period: 40s
     volumes:
-      - ./mysql:/var/lib/mysql
-
+      - ./mysql:/var/lib/mysql  # 🔥 Usa un volumen administrado por Docker
+    
   phpmyadmin-server:
     image: phpmyadmin/phpmyadmin
     container_name: phpmyadmin-server
     environment:
       PMA_HOST: mysql-server
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     ports:
       - "8080:80"
     networks:

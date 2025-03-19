@@ -10,11 +10,8 @@ COPY requirements.txt .
 # Instalar las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar el resto del código después de instalar dependencias
-COPY . .
-
 # Exponer el puerto 5000
-EXPOSE 5000
+EXPOSE 5000  
 
-# Ejecutar la aplicación
+# Comando de ejecución (permitiendo recarga automática con Flask)
 CMD ["python", "app.py"]

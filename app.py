@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from datetime import timedelta
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 import os
@@ -36,8 +37,8 @@ def create_app():
     
     # Configuración del JWT
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
-    app.config["JWT_ACCESS_TOKEN_EXPIRES_IN"] = os.getenv("JWT_ACCESS_TOKEN_EXPIRES_IN")
-    app.config["JWT_REFRESH_TOKEN_EXPIRES_IN"] = os.getenv("JWT_REFRESH_TOKEN_EXPIRES_IN")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(days=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_IN")))
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_IN")))
 
     # Asegurar que la carpeta de subida y de QR existen
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)

@@ -45,9 +45,9 @@ def login():
     
     if not user or not user.check_password(password):
         return jsonify({"error": "Email o contraseña incorrectos"}), 400
-    
-    access_token = create_access_token(identity=user.id)
-    refresh_token = create_refresh_token(identity=user.id)
+    print(user.id)
+    access_token = create_access_token(identity=str(user.id))
+    refresh_token = create_refresh_token(identity=str(user.id))
     
     # Guardar el token de refresco en la base de datos
     token = RefreshToken(token=refresh_token, user_id=user.id)

@@ -1,6 +1,17 @@
+import os
 from config.database import db
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Mostrar las variables de entorno
+print(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_IN"))
+print(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_IN"))
+
+refresh_expires_in = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_IN"))
+access_expires_in = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_IN"))
 
 class RefreshToken(db.Model):
     __tablename__ = "refresh_tokens"
