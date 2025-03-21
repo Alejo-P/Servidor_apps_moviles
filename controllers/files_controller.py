@@ -2,6 +2,7 @@ import os, uuid
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from config import settings as env
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
 
 # Importar la base de datos
 from config.database import db
@@ -45,7 +46,8 @@ def upload_file():
         return jsonify({"error": "Ningun archivo seleccionado"}), 400
 
     if file and allowed_file(file.filename):
-        filename = file.filename.replace(' ', '-').lower()
+        #filename = file.filename.replace(' ', '-').lower()
+        filename = secure_filename(file.filename)
         
         # Comprobar si el archivo ya existe
         if os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
@@ -122,11 +124,17 @@ def list_files():
     else:
         files_records = File.query.filter_by(uploaded_by=user_id).all()
         
-    if not files_records:
-        return jsonify({"error": "No hay archivos disponibles"}), 404
+    files = []
+    for archivo in files_records:
+        if not os.path.exists(archivo.filepath): # Verificar si el archivo existe
+            db.session.delete(archivo)
+            db.session.commit()
+            continue
+        
+        files.append(archivo.filename)
     
-    # Listar archivos obtenidos
-    files = [file.filename for file in files_records]
+    if not files:
+        return jsonify({"error": "No hay archivos disponibles"}), 404
     
     return jsonify({"files": files}), 200
 

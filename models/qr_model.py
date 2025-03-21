@@ -7,16 +7,16 @@ class QRCode(db.Model):
     __tablename__ = "qrcodes"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False)
+    filename = Column(String(255), nullable=False)
     text = Column(String(500), nullable=False)
-    filename = Column(String(255), nullable=False)  # Ruta del archivo QR
+    filepath = Column(String(255), nullable=False)  # Ruta del archivo QR
     created_at = Column(DateTime, default=datetime.now)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
-    def __init__(self, name, text, filename, created_by):
-        self.name = name
-        self.text = text
+    def __init__(self, filename, text, filepath, created_by):
         self.filename = filename
+        self.text = text
+        self.filepath = filepath
         self.created_by = created_by
         
     def __repr__(self):
@@ -25,7 +25,9 @@ class QRCode(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "name": self.name,
+            "name": self.filename,
             "text": self.text,
-            "filename": self.filename
+            "filename": self.filepath,
+            "created_at": self.created_at,
+            "created_by": self.created_by
         }

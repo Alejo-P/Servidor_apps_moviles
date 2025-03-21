@@ -6,6 +6,7 @@ from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from PIL import Image
 from config import settings as env
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from werkzeug.utils import secure_filename
 
 # Importar la base de datos
 from config.database import db
@@ -49,12 +50,12 @@ def generate_qr():
         
         # Si se proporciona un nombre, se usa ese nombre para el archivo
         if name:
-            filename = f"{name.replace(' ', '-').lower()}.png"
+            filename = f"{secure_filename(name)}.png"
         elif name_file:
-            filename = f"{name_file.replace(' ', '-').lower()}.png"
+            filename = f"{secure_filename(name_file)}.png"
         else:
-            filename = f"{text.replace(' ', '-').lower()}.png"
-        
+            filename = f"{secure_filename(text)}.png"
+                
         qr_path = os.path.join(env.QR_FOLDER, filename)
 
         # Comprobar si el QR ya existe
@@ -84,9 +85,9 @@ def generate_qr():
         
         # Guardar en la base de datos
         qr_entry = QRCode(
-            name=name,
+            filename=filename,
             text=text,
-            filename=qr_path,
+            filepath=qr_path,
             created_by=user_id
         )
         db.session.add(qr_entry)
@@ -145,16 +146,16 @@ def generate_qr_from_file(filename):
         qr = qrcode.make(file_url)
 
         # Nombre del archivo
-        qr_filename = f"{filename}.png".replace(' ', '-').lower()
+        qr_filename = f"{filename}.png"
 
         # Guardar la imagen
         qr.save(os.path.join(env.QR_FOLDER, qr_filename))
         
         # Guardar en la base de datos
         qr_entry = QRCode(
-            name=filename,
+            filename=qr_filename,
             text=file_url,
-            filename=os.path.join(env.QR_FOLDER, qr_filename),
+            filepath=os.path.join(env.QR_FOLDER, qr_filename),
             created_by=user_id
         )
         db.session.add(qr_entry)
