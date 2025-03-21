@@ -112,11 +112,21 @@ def view_file(filename):
     # Enviar el archivo con los encabezados correctos
     return send_from_directory(env.UPLOAD_FOLDER, filename)
 
-# Ruta para listar los archivos subidos
+# Ruta para listar los archivos subidos (JWT opcional)
 @files_bp.route("/files", methods=["GET"]) # /api/v1/files
+@jwt_required(optional=True)
 def list_files():
-    # Listar archivos en la carpeta de subida
-    files = os.listdir(env.UPLOAD_FOLDER)
+    user_id = get_jwt_identity()
+    if user_id is None:
+        files_records = File.query.all()
+    else:
+        files_records = File.query.filter_by(uploaded_by=user_id).all()
+        
+    if not files_records:
+        return jsonify({"error": "No hay archivos disponibles"}), 404
+    
+    # Listar archivos obtenidos
+    files = [file.filename for file in files_records]
     
     return jsonify({"files": files}), 200
 
