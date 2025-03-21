@@ -5,17 +5,29 @@ from io import BytesIO
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from PIL import Image
 from config import settings as env
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
+# Importar la base de datos
+from config.database import db
+from models.qr_model import QRCode
+from models.files_model import File
 
 qr_bp = Blueprint('qrController', __name__)
 
 # Ruta para generar un código QR con icono opcional
 @qr_bp.route("/qr", methods=["POST"])
+@jwt_required()
 def generate_qr():
     name = None
     name_file = None
     text = None
     icon_base64 = None
     icon_img = None
+    
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
     try:
         # Detectar si la solicitud es JSON o multipart/form-data
         if request.content_type.startswith("application/json"):
@@ -69,11 +81,20 @@ def generate_qr():
 
         # Guardar el QR con icono
         qr_img.save(qr_path)
+        
+        # Guardar en la base de datos
+        qr_entry = QRCode(
+            name=name,
+            text=text,
+            filename=qr_path,
+            created_by=user_id
+        )
+        db.session.add(qr_entry)
+        db.session.commit()
 
         return jsonify({"message": "Código QR generado exitosamente", "filename": filename}), 200
     except:
         return jsonify({"message": "Error al generar el código QR"}), 500
-
 
 # Función para decodificar un icono en base64
 def decode_base64_icon(icon_base64):
@@ -101,7 +122,12 @@ def add_icon_to_qr(qr_img, icon_img):
 
 # Ruta para generar un código QR (A partir de un archivo)
 @qr_bp.route("/qr/file/<filename>", methods=["POST"])  # /api/v1/qr/file/<filename>
+@jwt_required()
 def generate_qr_from_file(filename):
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
     # Verificar si el archivo existe
     if not os.path.exists(os.path.join(env.UPLOAD_FOLDER, filename)):
         return jsonify({"error": "Archivo no encontrado"}), 404
@@ -111,7 +137,7 @@ def generate_qr_from_file(filename):
     if os.path.exists(qr_path):
         return jsonify({"message": "Código QR ya generado", "filename": f"{filename}.png"}), 200
     
-    try:    
+    try:
         # Construye la URL de acceso al archivo
         file_url = url_for('filesController.view_file', filename=filename, _external=True)
 
@@ -123,10 +149,33 @@ def generate_qr_from_file(filename):
 
         # Guardar la imagen
         qr.save(os.path.join(env.QR_FOLDER, qr_filename))
+        
+        # Guardar en la base de datos
+        qr_entry = QRCode(
+            name=filename,
+            text=file_url,
+            filename=os.path.join(env.QR_FOLDER, qr_filename),
+            created_by=user_id
+        )
+        db.session.add(qr_entry)
+        db.session.commit()
+        
+        # Guardar en la base de datos la id del qr generado
+        file_record = File.query.filter_by(filename=filename).first()
+        if not file_record:
+            return jsonify({"error": f"El archivo '{filename}' no fue encontrado en la base de datos"}), 404
+            
+        file_record.qr_code = qr_entry.id
+        db.session.commit()
 
         return jsonify({"message": "Código QR generado exitosamente", "filename": qr_filename}), 200
-    except:
-        return jsonify({"message": "Error al generar el código QR"}), 500
+    except Exception as e:
+        print(f"Error generando QR: {e}")
+        
+        for clave, valor in e.__dict__.items():
+            print(f"{clave}: {valor}")
+        
+        return jsonify({"message": "Error al generar el código QR", "error":str(e)}), 500
 
 # Ruta para obtener un código QR
 @qr_bp.route("/qr/<filename>", methods=["GET"])
@@ -177,24 +226,56 @@ def list_qrs():
 
 # Ruta para eliminar un código QR
 @qr_bp.route("/qr/<filename>", methods=["DELETE"])  # /api/v1/qr/<filename>
+@jwt_required()
 def delete_qr(filename):
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
     # Verificar si el archivo existe
     if not os.path.exists(os.path.join(env.QR_FOLDER, filename)):
         return jsonify({"error": "Archivo no encontrado"}), 404
 
     # Eliminar el archivo
     os.remove(os.path.join(env.QR_FOLDER, filename))
+    
+    # Eliminar el registro de la base de datos
+    qr_entry = QRCode.query.filter_by(filename=filename).first()
+    file_record = File.query.filter_by(qr_code=qr_entry.id).first()
+    if file_record:
+        file_record.qr_code = None
+        db.session.commit()
+    
+    if qr_entry:
+        db.session.delete(qr_entry)
+        db.session.commit()
 
     return jsonify({"message": "Código QR eliminado exitosamente", "filename": filename}), 200
 
 # Ruta para eliminar todos los códigos QR
 @qr_bp.route("/qrs", methods=["DELETE"])  # /api/v1/qrs
+@jwt_required()
 def delete_all_qrs():
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
     # Listar archivos en la carpeta de códigos QR
     files = os.listdir(env.QR_FOLDER)
 
     # Eliminar los códigos QR
     for file in files:
         os.remove(os.path.join(env.QR_FOLDER, file))
+        
+        # Eliminar el registro de la base de datos
+        qr_entry = QRCode.query.filter_by(filename=file).first()
+        file_record = File.query.filter_by(qr_code=qr_entry.id).first()
+        if file_record:
+            file_record.qr_code = None
+            db.session.commit()
+        
+        if qr_entry:
+            db.session.delete(qr_entry)
+            db.session.commit()
 
     return jsonify({"message": "Códigos QR eliminados exitosamente"}), 200

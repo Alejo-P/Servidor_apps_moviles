@@ -15,7 +15,7 @@ from views.qr_view import qrview_bp
 from config import settings as env
 
 # Importa la base de datos
-from config.database import db
+from config.database import init_db
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
@@ -48,7 +48,7 @@ def create_app():
     CORS(app)
     
     # Inicializar la base de datos
-    db.init_app(app)
+    init_db(app)
     
     # Inicializar el JWT
     jwt.init_app(app)
