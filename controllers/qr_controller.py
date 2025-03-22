@@ -5,7 +5,7 @@ from io import BytesIO
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from PIL import Image
 from config import settings as env
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from werkzeug.utils import secure_filename
 
 # Importar la base de datos
@@ -179,12 +179,27 @@ def generate_qr_from_file(filename):
         return jsonify({"message": "Error al generar el código QR", "error":str(e)}), 500
 
 # Ruta para obtener un código QR
-@qr_bp.route("/qr/<filename>", methods=["GET"])
+@qr_bp.route("/qr/<filename>", methods=["GET"]) # /api/v1/qr/<filename>
+@jwt_required()
 def view_qr(filename):
-    # Convertimos el nombre a minúsculas para evitar problemas de coincidencia
-    filename = filename.lower()
-    file_path = os.path.join(env.QR_FOLDER, filename)
-
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}),
+    
+    claims = get_jwt()
+    if not claims:
+        return jsonify({"error": "Token inválido"}), 400
+    
+    user_role = claims.get("role")
+    if user_role != "admin":
+        qr_record = QRCode.query.filter_by(filename=filename, created_by=user_id).first()
+    else:
+        qr_record = QRCode.query.filter_by(filename=filename).first()
+    
+    if not qr_record:
+        return jsonify({"error": "QR no encontrado"}), 404
+    
+    file_path = qr_record.filepath
     if not os.path.exists(file_path):
         return jsonify({"error": "QR no encontrado"}), 404
 
@@ -219,9 +234,34 @@ def view_qr_image(filename):
 
 # Ruta para listar los códigos QR generados
 @qr_bp.route("/qrs", methods=["GET"])  # /api/v1/qrs
+@jwt_required()
 def list_qrs():
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
+    claims = get_jwt()
+    if not claims:
+        return jsonify({"error": "Token inválido"}), 400
+    
+    user_role = claims.get("role")
+    if user_role != "admin":
+        qr_records = QRCode.query.filter_by(created_by=user_id).all()
+    else:
+        qr_records = QRCode.query.all()
+    
     # Listar archivos en la carpeta de códigos QR
-    files = os.listdir(env.QR_FOLDER)
+    files = []
+    for qr in qr_records:
+        if not os.path.exists(qr.filepath): # Verificar si el archivo existe
+            db.session.delete(qr)
+            db.session.commit()
+            continue
+        
+        files.append(qr.filename)
+    
+    if not files:
+        return jsonify({"message": "No hay códigos QR generados"}), 404
 
     return jsonify({"files": files}), 200
 

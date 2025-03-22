@@ -12,7 +12,7 @@ def register_user(name, email, password):
     user = User(name=name, email=email, password=password)
     db.session.add(user)
     db.session.commit()
-    return user.to_dict()
+    return {"message": "Usuario registrado exitosamente"}
 
 @auth_bp.route("/register", methods=["POST"])  # /api/v1/register
 def register():
@@ -28,8 +28,8 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "El email ya está registrado"}), 400
     
-    user = register_user(name, email, password)
-    return jsonify(user), 201
+    response = register_user(name, email, password)
+    return jsonify(response), 201
 
 @auth_bp.route("/login", methods=["POST"])  # /api/v1/login
 def login():
@@ -45,8 +45,12 @@ def login():
     
     if not user or not user.check_password(password):
         return jsonify({"error": "Email o contraseña incorrectos"}), 400
-    print(user.id)
-    access_token = create_access_token(identity=str(user.id))
+    
+    aditional_claims = {
+        "role": user.role
+    }
+    
+    access_token = create_access_token(identity=str(user.id), additional_claims=aditional_claims)
     refresh_token = create_refresh_token(identity=str(user.id))
     
     # Guardar el token de refresco en la base de datos

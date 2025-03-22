@@ -1,7 +1,7 @@
 import os, uuid
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from config import settings as env
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from werkzeug.utils import secure_filename
 
 # Importar la base de datos
@@ -114,15 +114,21 @@ def view_file(filename):
     # Enviar el archivo con los encabezados correctos
     return send_from_directory(env.UPLOAD_FOLDER, filename)
 
-# Ruta para listar los archivos subidos (JWT opcional)
+# Ruta para listar los archivos subidos
 @files_bp.route("/files", methods=["GET"]) # /api/v1/files
-@jwt_required(optional=True)
+@jwt_required()
 def list_files():
     user_id = get_jwt_identity()
+    claims = get_jwt()
+    
     if user_id is None:
-        files_records = File.query.all()
-    else:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
+    user_role = claims.get("role")
+    if user_role != "admin":
         files_records = File.query.filter_by(uploaded_by=user_id).all()
+    else:
+        files_records = File.query.all()
         
     files = []
     for archivo in files_records:
@@ -146,7 +152,17 @@ def delete_file(filename):
     if user_id is None:
         return jsonify({"error": "Usuario no autenticado"}), 401
     
-    file_record = File.query.filter_by(filename=filename).first()
+    claims = get_jwt()
+    user_role = claims.get("role")
+    
+    if user_role != "admin":
+        file_record = File.query.filter_by(
+            filename=filename,
+            uploaded_by=user_id
+        ).first()
+    else:
+        file_record = File.query.filter_by(filename=filename).first()
+    
     if not file_record:
         return jsonify({"error": "Archivo no encontrado"}), 404
 
@@ -180,8 +196,40 @@ def delete_all_files():
     if user_id is None:
         return jsonify({"error": "Usuario no autenticado"}), 401
     
-    # Listar archivos en la carpeta de subida
-    files = os.listdir(env.UPLOAD_FOLDER)
+    claims = get_jwt()
+    user_role = claims.get("role")
+    
+    if user_role != "admin":
+        files_records = File.query.filter_by(uploaded_by=user_id).all()
+    else:
+        files_records = File.query.all()
+    
+    # Eliminar archivos en la carpeta de subida
+    files = []
+    for archivo in files_records:
+        if not os.path.exists(archivo.filepath):
+            db.session.delete(archivo)
+            db.session.commit()
+            continue
+        
+        id_qr = file_record.qr_code
+        if id_qr:
+            qr_record = QRCode.query.get(id_qr)
+            if qr_record:
+                qr_path = qr_record.filename
+                if os.path.exists(qr_path):
+                    os.remove(qr_path)
+                db.session.delete(qr_record)
+                db.session.commit()
+        
+        files.append(archivo.filename)
+        os.remove(archivo.filepath)
+        db.session.delete(archivo)
+        db.session.commit()
+        
+        
+    if not files:
+        return jsonify({"error": "No hay archivos disponibles"}), 404
     
     # Eliminar archivos
     for file in files:
