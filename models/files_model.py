@@ -26,6 +26,19 @@ class File(db.Model):
     def __repr__(self):
         return f"<File {self.filename}>"
     
+    def to_dict(self):
+        """Devuelve un diccionario con los datos del archivo."""
+        return {
+            "id": self.id,
+            "filename": self.filename,
+            "filepath": self.filepath,
+            "file_size": self.file_size,
+            "file_type": self.file_type,
+            "uploaded_at": self.uploaded_at,
+            "uploaded_by": self.uploaded_by,
+            "qr_code": self.qr_code
+        }
+    
     @validates("filename")
     def validate_filename(self, key, filename):
         """Valida el nombre del archivo."""
@@ -57,15 +70,3 @@ class File(db.Model):
         
         return file_type
     
-    def to_dict(self):
-        """Devuelve un diccionario con los datos del archivo."""
-        return {
-            "id": self.id,
-            "filename": self.filename,
-            "filepath": self.filepath,
-            "file_size": self.file_size,
-            "file_type": self.file_type,
-            "uploaded_at": self.uploaded_at,
-            "uploaded_by": self.uploaded_by,
-            "qr_code": self.qr_code
-        }

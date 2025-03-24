@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 from config.database import db
 from models.files_model import File
 from models.qr_model import QRCode
+from models.users_model import User
 
 # Crear un Blueprint
 files_bp = Blueprint('filesController', __name__)
@@ -77,16 +78,50 @@ def upload_file():
 
 # Ruta para obtener un archivo cargado
 @files_bp.route("/file/<filename>", methods=["GET"]) # /api/v1/file/<filename>
+@jwt_required()
 def get_file(filename):
-    # Ruta completa del archivo
-    file_path = os.path.join(env.UPLOAD_FOLDER, filename)
-
-    # Verificar si el archivo existe
-    if not os.path.exists(file_path):
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
+    claims = get_jwt()
+    user_role = claims.get("role")
+    
+    # Consultar a la base de datos por los detalles del archivo
+    if user_role != "admin":
+        file_record = File.query.filter_by(
+            filename=filename,
+            uploaded_by=user_id
+        ).first()
+    else:
+        file_record = File.query.filter_by(filename=filename).first()
+    
+    if not file_record:
         return jsonify({"error": "Archivo no encontrado"}), 404
 
+    # Verificar si el archivo existe
+    if not os.path.exists(file_record.filepath):
+        return jsonify({"error": "Archivo no encontrado"}), 404
+    
+    # Obtener el nombre de quien subio el archivo en la tabla users de la base de datos
+    uploaded_by = file_record.uploaded_by
+    
+    file_data = file_record.to_dict()
+    if uploaded_by:
+        user_record = User.query.get(uploaded_by)
+        file_data["uploaded_by"] = {"id":user_record.id, "name":user_record.name, "role": user_record.role} if user_record else "Desconocido"
+    
+    # Verificar si el archivo tiene un QR asociado
+    qr_code = file_record.qr_code
+    if qr_code:
+        qr_record = QRCode.query.get(qr_code)
+        file_data["qr_code"] = qr_record.filename if qr_record else None
+    
+    # Aregar la URL de acceso al archivo
+    file_data["url"] = url_for('filesController.view_file', filename=file_record.filename, _external=True)
+
     # Servir la URL de acceso al archivo
-    return jsonify({"url": url_for('filesController.view_file', filename=filename, _external=True), "filename": filename}), 200
+    return jsonify(file_data), 200
 
 # Ruta para descargar un archivo cargado
 @files_bp.route("/download/file/<filename>", methods=["GET"])  # /api/v1/download/<filename>
