@@ -12,7 +12,7 @@ def register_user(name, email, password):
     user = User(name=name, email=email, password=password)
     db.session.add(user)
     db.session.commit()
-    return {"message": "Usuario registrado exitosamente"}
+    return jsonify({"msg": "Usuario registrado exitosamente"})
 
 @auth_bp.route("/register", methods=["POST"])  # /api/v1/register
 def register():
@@ -104,7 +104,7 @@ def logout():
     
     token.activo = False
     db.session.commit()
-    return jsonify({"message": "Sesión cerrada exitosamente"}), 200
+    return jsonify({"msg": "Sesión cerrada exitosamente"}), 200
 
 @auth_bp.route("/profile", methods=["GET"])  # /api/v1/profile
 @jwt_required()

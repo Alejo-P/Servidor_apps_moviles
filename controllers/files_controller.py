@@ -67,7 +67,7 @@ def upload_file():
         db.session.commit()
 
         return jsonify({
-            "message": "Archivo cargado exitosamente",
+            "msg": "Archivo cargado exitosamente",
             "filename": filename,
             "file_id": new_file.id
         }), 201
@@ -186,7 +186,7 @@ def delete_file(filename):
     db.session.delete(file_record)
     db.session.commit()
 
-    return jsonify({"message": "Archivo eliminado exitosamente"}), 200
+    return jsonify({"msg": "Archivo eliminado exitosamente"}), 200
 
 # Ruta para eliminar todos los archivos
 @files_bp.route("/delete/all", methods=["DELETE"]) # /api/v1/delete/all
@@ -212,7 +212,7 @@ def delete_all_files():
             db.session.commit()
             continue
         
-        id_qr = file_record.qr_code
+        id_qr = archivo.qr_code
         if id_qr:
             qr_record = QRCode.query.get(id_qr)
             if qr_record:
@@ -254,4 +254,4 @@ def delete_all_files():
             db.session.delete(file_record)
             db.session.commit()
     
-    return jsonify({"message": "Archivos eliminados exitosamente"}), 200
+    return jsonify({"msg": "Archivos eliminados exitosamente"}), 200

@@ -69,7 +69,7 @@ def create_app():
 
     @app.errorhandler(405)
     def method_not_allowed(error):
-        return jsonify({"error": "Método no permitido", "message":str(error)}), 405
+        return jsonify({"error": "Método no permitido", "msg":str(error)}), 405
 
     return app
 

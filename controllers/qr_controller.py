@@ -93,9 +93,9 @@ def generate_qr():
         db.session.add(qr_entry)
         db.session.commit()
 
-        return jsonify({"message": "Código QR generado exitosamente", "filename": filename}), 200
+        return jsonify({"msg": "Código QR generado exitosamente", "filename": filename}), 200
     except:
-        return jsonify({"message": "Error al generar el código QR"}), 500
+        return jsonify({"msg": "Error al generar el código QR"}), 500
 
 # Función para decodificar un icono en base64
 def decode_base64_icon(icon_base64):
@@ -136,7 +136,7 @@ def generate_qr_from_file(filename):
     # Si ya existe un QR, devolver una solicitud exitosa
     qr_path = os.path.join(env.QR_FOLDER, f"{filename}.png")
     if os.path.exists(qr_path):
-        return jsonify({"message": "Código QR ya generado", "filename": f"{filename}.png"}), 200
+        return jsonify({"msg": "Código QR ya generado", "filename": f"{filename}.png"}), 200
     
     try:
         # Construye la URL de acceso al archivo
@@ -169,14 +169,14 @@ def generate_qr_from_file(filename):
         file_record.qr_code = qr_entry.id
         db.session.commit()
 
-        return jsonify({"message": "Código QR generado exitosamente", "filename": qr_filename}), 200
+        return jsonify({"msg": "Código QR generado exitosamente", "filename": qr_filename}), 200
     except Exception as e:
         print(f"Error generando QR: {e}")
         
         for clave, valor in e.__dict__.items():
             print(f"{clave}: {valor}")
         
-        return jsonify({"message": "Error al generar el código QR", "error":str(e)}), 500
+        return jsonify({"msg": "Error al generar el código QR", "error":str(e)}), 500
 
 # Ruta para obtener un código QR
 @qr_bp.route("/qr/<filename>", methods=["GET"]) # /api/v1/qr/<filename>
@@ -261,7 +261,7 @@ def list_qrs():
         files.append(qr.filename)
     
     if not files:
-        return jsonify({"message": "No hay códigos QR generados"}), 404
+        return jsonify({"msg": "No hay códigos QR generados"}), 404
 
     return jsonify({"files": files}), 200
 
@@ -291,7 +291,7 @@ def delete_qr(filename):
         db.session.delete(qr_entry)
         db.session.commit()
 
-    return jsonify({"message": "Código QR eliminado exitosamente", "filename": filename}), 200
+    return jsonify({"msg": "Código QR eliminado exitosamente", "filename": filename}), 200
 
 # Ruta para eliminar todos los códigos QR
 @qr_bp.route("/qrs", methods=["DELETE"])  # /api/v1/qrs
@@ -319,4 +319,4 @@ def delete_all_qrs():
             db.session.delete(qr_entry)
             db.session.commit()
 
-    return jsonify({"message": "Códigos QR eliminados exitosamente"}), 200
+    return jsonify({"msg": "Códigos QR eliminados exitosamente"}), 200
