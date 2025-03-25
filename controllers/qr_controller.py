@@ -212,8 +212,8 @@ def view_qr(filename):
         qr_data["created_by"] = {"id": user.id, "name": user.name, "role": user.role} if user else None
 
     # Agregar la URL de acceso al archivo
-    qr_data["url"] = url_for('qrController.view_qr_image', filename=qr_record.filename, _external=True)
-    print("qr_data ->",qr_record.to_dict())
+    qr_data["url"] = url_for('qrController.view_qr_image', filename=qr_record.filename, _external=True).replace(" ", "")
+    
     # Servir la URL de acceso al archivo
     return jsonify(qr_data), 200
 
