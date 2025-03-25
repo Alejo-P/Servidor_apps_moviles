@@ -219,15 +219,33 @@ def view_qr(filename):
 
 # Ruta para descargar un código QR
 @qr_bp.route("/download/qr/<filename>", methods=["GET"])  # /api/v1/download/qr/<filename>
+@jwt_required() # Proteger la ruta con JWT
 def download_qr(filename):
-    # Convertimos el nombre a minúsculas para evitar problemas de coincidencia
-    file_path = os.path.join(env.QR_FOLDER, filename)
+    user_id = get_jwt_identity()
+    if user_id is None:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
+    claims = get_jwt()
+    if not claims:
+        return jsonify({"error": "Token inválido"}), 400
+    
+    user_role = claims.get("role")
+    # Obtener el registro de la base de datos
+    if user_role != "admin":
+        qr_record = QRCode.query.filter_by(filename=filename, created_by=user_id).first()
+    else:
+        qr_record = QRCode.query.filter_by(filename=filename).first()
+    
+    if not qr_record:
+        return jsonify({"error": "QR no encontrado"}), 404
 
-    if not os.path.exists(file_path):
+    if not os.path.exists(qr_record.filepath):
+        QRCode.query.filter_by(filename=filename).delete()
+        db.session.commit()
         return jsonify({"error": "QR no encontrado"}), 404
 
     # Enviar el archivo con los encabezados correctos
-    return send_from_directory(env.QR_FOLDER, filename, as_attachment=True, mimetype='image/png')
+    return send_from_directory(env.QR_FOLDER, qr_record.filename, as_attachment=True, mimetype='image/png')
 
 # Ruta para visualizar un código QR
 @qr_bp.route("/view/qr/<filename>", methods=["GET"])  # /api/v1/view/qr/<filename>
