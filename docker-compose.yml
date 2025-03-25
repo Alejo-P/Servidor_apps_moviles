@@ -12,7 +12,7 @@ services:
       mysql-server:
         condition: service_healthy
     volumes:
-      - .:/app:cached  # 🔥 Usa un volumen administrado por Docke r
+      - .:/app:cached  # 🔥 Usa un volumen administrado por Docker
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=${FLASK_ENV}

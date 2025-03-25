@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from config.database import db
 from models.qr_model import QRCode
 from models.files_model import File
+from models.users_model import User
 
 qr_bp = Blueprint('qrController', __name__)
 
@@ -199,12 +200,22 @@ def view_qr(filename):
     if not qr_record:
         return jsonify({"error": "QR no encontrado"}), 404
     
-    file_path = qr_record.filepath
-    if not os.path.exists(file_path):
+    if not os.path.exists(qr_record.filepath):
         return jsonify({"error": "QR no encontrado"}), 404
+    
+    # Obtener el nombre de quien creo el QR
+    created_by = qr_record.created_by
+    
+    qr_data = qr_record.to_dict()
+    if created_by:
+        user = User.query.filter_by(id=created_by).first()
+        qr_data["created_by"] = {"id": user.id, "name": user.name, "role": user.role} if user else None
 
+    # Agregar la URL de acceso al archivo
+    qr_data["url"] = url_for('qrController.view_qr_image', filename=qr_record.filename, _external=True)
+    print("qr_data ->",qr_record.to_dict())
     # Servir la URL de acceso al archivo
-    return jsonify({"url": url_for('qrController.view_qr_image', filename=filename, _external=True), "filename": filename}), 200 # /api/v1/view/qr/<filename>
+    return jsonify(qr_data), 200
 
 # Ruta para descargar un código QR
 @qr_bp.route("/download/qr/<filename>", methods=["GET"])  # /api/v1/download/qr/<filename>
@@ -223,11 +234,13 @@ def download_qr(filename):
 @qr_bp.route("/view/qr/<filename>", methods=["GET"])  # /api/v1/view/qr/<filename>
 def view_qr_image(filename):
     # Convertimos el nombre a minúsculas para evitar problemas de coincidencia
-    filename = filename.lower()
     file_path = os.path.join(env.QR_FOLDER, filename)
 
+    print(file_path)
     if not os.path.exists(file_path):
         return jsonify({"error": "QR no encontrado"}), 404
+    
+    print("file_path ->",file_path)
 
     # Servir la imagen del código QR
     return send_from_directory(env.QR_FOLDER, filename, mimetype='image/png')
@@ -259,7 +272,7 @@ def list_qrs():
             continue
         
         files.append(qr.filename)
-    
+
     if not files:
         return jsonify({"msg": "No hay códigos QR generados"}), 404
 

@@ -1,0 +1,31 @@
+30
+15
+Endpoint                            Methods  Rule                            
+----------------------------------  -------  --------------------------------
+authController.active_sessions      POST     /api/v1/active_sessions         
+authController.login                POST     /api/v1/login                   
+authController.logout               POST     /api/v1/logout                  
+authController.profile              GET      /api/v1/profile                 
+authController.refresh              POST     /api/v1/refresh                 
+authController.register             POST     /api/v1/register                
+filesController.delete_all_files    DELETE   /api/v1/delete/all              
+filesController.delete_file         DELETE   /api/v1/delete/file/<filename>  
+filesController.download_file       GET      /api/v1/download/file/<filename>
+filesController.get_file            GET      /api/v1/file/<filename>         
+filesController.list_files          GET      /api/v1/files                   
+filesController.upload_file         POST     /api/v1/upload                  
+filesController.view_file           GET      /api/v1/view/file/<filename>    
+filesView.list_files                GET      /views/files                    
+filesView.upload_form               GET      /views/upload                   
+filesView.view_pdf                  GET      /views/pdf/<filename>           
+home.home                           GET      /                               
+qrController.delete_all_qrs         DELETE   /api/v1/qrs                     
+qrController.delete_qr              DELETE   /api/v1/qr/<filename>           
+qrController.download_qr            GET      /api/v1/download/qr/<filename>  
+qrController.generate_qr            POST     /api/v1/qr                      
+qrController.generate_qr_from_file  POST     /api/v1/qr/file/<filename>      
+qrController.list_qrs               GET      /api/v1/qrs                     
+qrController.view_qr                GET      /api/v1/qr/<filename>           
+qrController.view_qr_image          GET      /api/v1/view/qr/<filename>      
+qrview.qr_form                      GET      /views/qr                       
+static                              GET      /static/<path:filename>         

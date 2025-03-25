@@ -20,14 +20,14 @@ class QRCode(db.Model):
         self.created_by = created_by
         
     def __repr__(self):
-        return f"<QRCode {self.name}>"
+        return f"<QRCode {self.filename}>"
     
     def to_dict(self):
         return {
             "id": self.id,
-            "name": self.filename,
+            "filename": self.filename,
             "text": self.text,
-            "filename": self.filepath,
+            "filepath": self.filepath,
             "created_at": self.created_at,
             "created_by": self.created_by
         }
