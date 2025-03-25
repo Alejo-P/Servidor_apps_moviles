@@ -221,7 +221,6 @@ def view_qr(filename):
 @qr_bp.route("/download/qr/<filename>", methods=["GET"])  # /api/v1/download/qr/<filename>
 def download_qr(filename):
     # Convertimos el nombre a minúsculas para evitar problemas de coincidencia
-    filename = filename.lower()
     file_path = os.path.join(env.QR_FOLDER, filename)
 
     if not os.path.exists(file_path):
