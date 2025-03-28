@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
 from models.users_model import User
-from models.token import RefreshToken
+from models.token_model import RefreshToken
 from config.database import db
 
 auth_bp = Blueprint('authController', __name__)
