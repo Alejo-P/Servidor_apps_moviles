@@ -67,13 +67,22 @@ def refresh():
     if not refresh_token:
         return jsonify({"error": "Falta el token de refresco"}), 400
     
-    token = RefreshToken.query.filter_by(token=refresh_token, activo=True).first()
+    token = RefreshToken.query.filter_by(token=refresh_token, is_active=True).first()
     
     if not token:
         return jsonify({"error": "Token de refresco inválido"}), 400
     
-    access_token = create_access_token(identity=token.user_id)
-    return jsonify({"access_token": access_token}), 200
+    user_record = User.query.get(token.user_id)
+    if not user_record:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    
+    additional_claims = {
+        "role": user_record.role
+    }
+    
+    access_token = create_access_token(identity=token.user_id, additional_claims=additional_claims)
+    # Actualizar el token de refresco en la base de datos
+    return jsonify({"access_token": access_token, "refresh_token": refresh_token}), 200
 
 @auth_bp.route("/active_sessions", methods=["POST"])  # /api/v1/active_sessions
 @jwt_required()
@@ -94,15 +103,13 @@ def logout():
     """Cierra la sesión de un usuario."""
     user_id = get_jwt_identity()
     token = RefreshToken.query.filter_by(
-        RefreshToken.user_id == user_id,
-        RefreshToken.is_active == True,
-        RefreshToken.expires_at > datetime.utcnow()
+        user_id = user_id,
+        is_active = True,
     ).first()
-    
     if not token:
         return jsonify({"error": "No hay sesión activa"}), 400
     
-    token.activo = False
+    db.session.delete(token)
     db.session.commit()
     return jsonify({"msg": "Sesión cerrada exitosamente"}), 200
 
