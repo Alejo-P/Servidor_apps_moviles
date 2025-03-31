@@ -13,6 +13,7 @@ services:
         condition: service_healthy
     volumes:
       - .:/app:cached  # 🔥 Usa un volumen administrado por Docker
+      - DocTools:/root/DocTools:cached  # 🔥 Usa un volumen administrado por Docker
     environment:
       - PYTHONUNBUFFERED=1
       - FLASK_ENV=${FLASK_ENV}
@@ -29,7 +30,7 @@ services:
     image: mysql:8.0
     container_name: mysql-server
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}+
       MYSQL_DATABASE: ${DB_NAME}
     ports:
       - "3306:3306"
@@ -64,3 +65,6 @@ networks:
 
 volumes:
   mysql:
+    driver: local
+  DocTools:
+    driver: local

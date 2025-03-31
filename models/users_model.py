@@ -1,6 +1,8 @@
 from config.database import db
+from models.userRoles_model import user_roles
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(db.Model):
@@ -11,7 +13,8 @@ class User(db.Model):
     name = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
-    role = Column(String(50), default="user")
+    # roles -> Lista de roles del usuario 
+    roles = relationship("Role", secondary=user_roles, backref="users")
     
     def __init__(self, name, email, password):
         self.name = name
@@ -20,6 +23,15 @@ class User(db.Model):
     
     def __repr__(self):
         return f"<User {self.name}>"
+    
+    def to_dict(self):
+        """Devuelve un diccionario con los datos del usuario."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "roles": [role.to_dict() for role in self.roles]
+        }
     
     @validates("password")
     def validate_password(self, key, password):
@@ -35,12 +47,3 @@ class User(db.Model):
     def check_password(self, password):
         """Verifica que la contraseña sea correcta."""
         return check_password_hash(self.password, password)
-    
-    def to_dict(self):
-        """Devuelve un diccionario con los datos del usuario."""
-        return {
-            "id": self.id,
-            "name": self.name,
-            "email": self.email,
-            "role": self.role
-        }

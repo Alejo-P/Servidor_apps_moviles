@@ -1,7 +1,8 @@
 from datetime import datetime
 from flask import request, jsonify, Blueprint, send_from_directory, url_for
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt, jwt_required, get_jwt_identity
 from models.users_model import User
+from models.roles_model import Role
 from models.token_model import RefreshToken
 from config.database import db
 
@@ -10,6 +11,10 @@ auth_bp = Blueprint('authController', __name__)
 def register_user(name, email, password):
     """Registra un nuevo usuario en la base de datos."""
     user = User(name=name, email=email, password=password)
+    user_role = Role.query.filter_by(name="Usuario").first()
+    user.roles.append(user_role)
+    
+    # Guardar el usuario en la base de datos
     db.session.add(user)
     db.session.commit()
     return jsonify({"msg": "Usuario registrado exitosamente"})
@@ -47,7 +52,7 @@ def login():
         return jsonify({"error": "Email o contraseña incorrectos"}), 400
     
     aditional_claims = {
-        "role": user.role
+        "roles": user.roles
     }
     
     access_token = create_access_token(identity=str(user.id), additional_claims=aditional_claims)
@@ -77,7 +82,7 @@ def refresh():
         return jsonify({"error": "Usuario no encontrado"}), 404
     
     additional_claims = {
-        "role": user_record.role
+        "roles": user_record.roles
     }
     
     access_token = create_access_token(identity=token.user_id, additional_claims=additional_claims)
@@ -120,3 +125,23 @@ def profile():
     user_id = get_jwt_identity()
     user = User.query.get(user_id)
     return jsonify(user.to_dict()), 200
+
+@auth_bp.route("/profile/<int:user_id>", methods=["GET"])  # /api/v1/profile/<user_id>
+@jwt_required()
+def get_user_profile(user_id):
+    """Devuelve los datos de un usuario."""
+    userAuth_id = get_jwt_identity()
+    if not userAuth_id:
+        return jsonify({"error": "Usuario no autenticado"}), 401
+    
+    claims = get_jwt()
+    user_role = claims.get("role")
+    if user_role != "admin":
+        return jsonify({"error": "No tienes permisos para acceder a este recurso"}), 403
+    
+    # Verificar si el usuario existe
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+    
+    return jsonify(user.to_dict()), 200 
