@@ -1,9 +1,9 @@
-from config.database import db
+from app.config.database import Base
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from datetime import datetime
 from sqlalchemy.orm import validates
 
-class File(db.Model):
+class File(Base):
     """Modelo de archivos."""
     __tablename__ = "files"
     

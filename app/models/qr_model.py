@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from datetime import datetime
-from config.database import db
+from config.database import Base
 
-class QRCode(db.Model):
+class QRCode(Base):
     """Modelo de códigos QR."""
     __tablename__ = "qrcodes"
 

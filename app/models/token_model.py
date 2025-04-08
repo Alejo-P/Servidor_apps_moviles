@@ -1,6 +1,6 @@
 import os
-from config.database import db
-from config.settings import JWT_REFRESH_TOKEN_EXPIRES_IN, JWT_ACCESS_TOKEN_EXPIRES_IN
+from app.config.database import Base
+from app.config.settings import settings as config
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -9,13 +9,14 @@ load_dotenv()
 
 # Mostrar las variables de entorno
 print("Variables de entorno:")
-print("Access token expires in:", JWT_ACCESS_TOKEN_EXPIRES_IN)
-print("Refresh token expires in:", JWT_REFRESH_TOKEN_EXPIRES_IN)
+print("Access token expires in:", config.JWT_ACCESS_TOKEN_EXPIRES)
+print("Refresh token expires in:", config.JWT_REFRESH_TOKEN_EXPIRES)
 
-refresh_expires_in = JWT_REFRESH_TOKEN_EXPIRES_IN
-access_expires_in = JWT_ACCESS_TOKEN_EXPIRES_IN
+refresh_expires_in = config.JWT_REFRESH_TOKEN_EXPIRES
+access_expires_in = config.JWT_ACCESS_TOKEN_EXPIRES
 
-class RefreshToken(db.Model):
+class RefreshToken(Base):
+    """Modelo de tokens de actualización."""
     __tablename__ = "refresh_tokens"
 
     id = Column(Integer, primary_key=True)
