@@ -14,13 +14,10 @@ services:
     volumes:
       - .:/app:cached  # 🔥 Usa un volumen administrado por Docker
     environment:
+      - DB_URI=${DB_URI}
       - PYTHONUNBUFFERED=1
-      - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-      - DB_PORT=${DB_PORT}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - AUTHJWT_SECRET_KEY=${AUTHJWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
       - JWT_ACCESS_TOKEN_EXPIRES=${JWT_ACCESS_TOKEN_EXPIRES}
       - JWT_REFRESH_TOKEN_EXPIRES=${JWT_REFRESH_TOKEN_EXPIRES}
 

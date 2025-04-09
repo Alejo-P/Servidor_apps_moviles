@@ -1,19 +1,16 @@
 import os
 from app.config.database import Base
 from app.config.settings import settings
+from app.utils.parse import parse_date 
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
+
 load_dotenv()
 
-# Mostrar las variables de entorno
-print("Variables de entorno:")
-print("Access token expires in:", settings.JWT_ACCESS_TOKEN_EXPIRES)
-print("Refresh token expires in:", settings.JWT_REFRESH_TOKEN_EXPIRES)
-
-refresh_expires_in = settings.JWT_REFRESH_TOKEN_EXPIRES
-access_expires_in = settings.JWT_ACCESS_TOKEN_EXPIRES
+refresh_expires_in = parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES)
+access_expires_in = parse_date(settings.JWT_ACCESS_TOKEN_EXPIRES)
 
 class RefreshToken(Base):
     """Modelo de tokens de actualización."""

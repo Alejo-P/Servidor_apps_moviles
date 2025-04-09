@@ -24,5 +24,5 @@ class Role(Base):
             "id": self.id,
             "name": self.name,
             "description": self.description,
-            "created_at": self.created_at
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
         }   

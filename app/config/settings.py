@@ -1,33 +1,10 @@
 import os
-import re
 from typing import ClassVar
 from pydantic import BaseSettings
-from datetime import timedelta
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env
 load_dotenv()
-
-def parse_date(value: str):
-    """Parses a duration string (e.g., '3d', '6h30m', '2d4h20m10s') into a timedelta object."""
-    if not value:
-        return timedelta(days=1)  # Valor por defecto: 1 día
-
-    # Expresión regular para capturar números seguidos de unidades (d, h, m, s)
-    pattern = re.findall(r"(\d+)([dhms])", value)
-    
-    if not pattern:
-        raise ValueError(f"Formato inválido: '{value}'. Usa formatos como '1d', '3h30m', '45m10s'.")
-
-    # Mapeo de unidades a timedelta
-    tiempo_total = timedelta()
-    unidades = {"d": "days", "h": "hours", "m": "minutes", "s": "seconds"}
-
-    for cantidad, unidad in pattern:
-        cantidad = int(cantidad)
-        tiempo_total += timedelta(**{unidades[unidad]: cantidad})
-
-    return tiempo_total
 
 class Settings(BaseSettings):
     """Configuración de la aplicación."""
@@ -43,12 +20,12 @@ class Settings(BaseSettings):
     LOG_FILE: str = os.path.join(LOG_FOLDER, 'app.log')
     
     PYTHONUNBUFFERED: int = 1  # Evita el buffering de salida
-    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY")   # Clave secreta para JWT
+    AUTHJWT_SECRET_KEY: str = os.getenv("AUTHJWT_SECRET_KEY")   # Clave secreta para JWT
     ALLOWED_EXTENSIONS: set = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
     MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16 MB
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
-    JWT_ACCESS_TOKEN_EXPIRES: str = int(parse_date(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "1d")).total_seconds())
-    JWT_REFRESH_TOKEN_EXPIRES: str = int(parse_date(os.getenv("JWT_REFRESH_TOKEN_EXPIRES", "3d")).total_seconds())
+    JWT_ACCESS_TOKEN_EXPIRES: str = os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "1d")
+    JWT_REFRESH_TOKEN_EXPIRES: str = os.getenv("JWT_REFRESH_TOKEN_EXPIRES", "3d")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     DEBUG: bool = True
     PORT: int = 5000

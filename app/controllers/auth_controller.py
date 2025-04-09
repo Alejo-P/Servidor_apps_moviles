@@ -8,6 +8,11 @@ from app.models.roles_model import Role
 from app.models.token_model import RefreshToken
 from app.models.users_model import User
 from pydantic import BaseModel
+from app.config.settings import settings
+
+@AuthJWT.load_config
+def get_config():
+    return settings
 
 # Crear el router para la autenticación
 router = APIRouter()
