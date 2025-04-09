@@ -10,8 +10,11 @@ COPY requirements.txt .
 # Instalar las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copiar todos los archivos al contenedor
+COPY . .
+
 # Exponer el puerto 5000
 EXPOSE 5000  
 
 # Comando de ejecución (permitiendo recarga automática con Flask)
-CMD ["python", "app.py"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5000", "--reload"]

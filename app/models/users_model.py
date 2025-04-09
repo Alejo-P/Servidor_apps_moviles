@@ -1,11 +1,11 @@
-from config.database import db
-from models.userRoles_model import user_roles
+from app.config.database import Base
+from app.models.userRoles_model import user_roles
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import validates
 from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 
-class User(db.Model):
+class User(Base):
     """Modelo de usuario."""
     __tablename__ = "users"
     

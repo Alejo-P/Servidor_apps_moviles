@@ -1,8 +1,8 @@
-from config.database import db
+from app.config.database import Base
 from sqlalchemy import Column, Integer, String, DateTime    
 from datetime import datetime
 
-class Role(db.Model):
+class Role(Base):
     """Modelo de roles."""
     __tablename__ = "roles"
     

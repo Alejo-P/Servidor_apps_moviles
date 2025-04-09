@@ -14,6 +14,3 @@ class FileSchema(BaseModel):
 
     class Config:
         orm_mode = True  # Esto es vital para convertir SQLAlchemy → Pydantic
-        anystr_strip_whitespace = True # Elimina espacios en blanco al inicio y al final de las cadenas
-        use_enum_values = True # Convierte los valores de los enums a sus valores en lugar de sus nombres
-        allow_population_by_field_name = True # Permite la población de campos por su nombre en lugar de su alias

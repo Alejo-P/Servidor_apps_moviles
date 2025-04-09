@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from datetime import datetime
-from config.database import Base
+from app.config.database import Base
 
 class QRCode(Base):
     """Modelo de códigos QR."""

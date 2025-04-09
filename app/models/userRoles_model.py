@@ -1,10 +1,11 @@
-from config.database import db
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Table, Column, Integer, ForeignKey
+from app.config.database import Base
 
-user_roles = db.Table(
+user_roles = Table(
     "user_roles",
-    db.Column("user_id", db.Integer, db.ForeignKey("users.id"), primary_key=True),
-    db.Column("role_id", db.Integer, db.ForeignKey("roles.id"), primary_key=True)
+    Base.metadata,  # Usa Base.metadata para registrar la tabla
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
+    Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True)
 )
 
-#TODO: Definir un rol principal para cada usuario, por ejemplo, "Usuario" o "Admin".
+# TODO: Definir un rol principal para cada usuario, por ejemplo, "Usuario" o "Admin".

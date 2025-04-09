@@ -2,8 +2,8 @@
 .env
 /mysql
 
-
 /__pycache__/
+/**/__pycache__/
 /.vscode/
 /.idea/
 /node_modules/
@@ -14,8 +14,6 @@
 *.log
 conf.json
 
-
-*/__pycache__/
 /uploads/
 /qrcode/
 /build/
