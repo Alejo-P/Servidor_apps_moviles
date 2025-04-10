@@ -33,6 +33,10 @@ class User(Base):
             "roles": [role.to_dict() for role in self.roles]
         }
     
+    def check_password(self, password):
+        """Verifica que la contraseña sea correcta."""
+        return check_password_hash(self.password, password)
+    
     @validates("password")
     def validate_password(self, key, password):
         """Valida la contraseña y la hashea."""
@@ -43,7 +47,3 @@ class User(Base):
             raise ValueError("La contraseña debe contener al menos un número.")
         
         return generate_password_hash(password)
-    
-    def check_password(self, password):
-        """Verifica que la contraseña sea correcta."""
-        return check_password_hash(self.password, password)

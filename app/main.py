@@ -1,10 +1,12 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.config.settings import settings
 from app.controllers import files_controller, qr_controller, auth_controller
 #from app.views import files_view, home_view, qr_view
 from app.config.database import Base, engine
+from app.auth import jwt
 
 from dotenv import load_dotenv
 
