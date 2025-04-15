@@ -107,7 +107,6 @@ def get_file(
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Rol no encontrado"})
     
     # Verificar si el archivo existe en la base de datos
-    #TODO: Guardar el rol del usuario en el token para evitar hacer una consulta a la base de datos
     if user_role != "admin":
         file_record = db.query(FileModel).filter_by(
             filename=filename,
@@ -177,7 +176,7 @@ def view_file(
 # Ruta para listar los archivos subidos
 @router.get("/files", status_code=status.HTTP_200_OK) # /api/v1/files
 def list_files(
-    Autorize: AuthJWT = Depends(),
+    Autorize: AuthJWT = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """Devuelve una lista de archivos subidos."""
@@ -189,7 +188,7 @@ def list_files(
         return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Usuario no autenticado"})
     
     user_role = claims.get("role")
-    if user_role != "admin":
+    if user_role != ROLE_ADMIN:
         files_records = db.query(FileModel).filter_by(uploaded_by=user_id).all()
     else:
         files_records = db.query(FileModel).all()

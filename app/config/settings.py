@@ -20,13 +20,18 @@ class Settings(BaseSettings):
     LOG_FILE: str = os.path.join(LOG_FOLDER, 'app.log')
     
     PYTHONUNBUFFERED: int = 1  # Evita el buffering de salida
-    AUTHJWT_SECRET_KEY: str = os.getenv("AUTHJWT_SECRET_KEY")   # Clave secreta para JWT
     ALLOWED_EXTENSIONS: set = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
     MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16 MB
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
+    
+    AUTHJWT_SECRET_KEY: str = os.getenv("AUTHJWT_SECRET_KEY")   # Clave secreta para JWT
+    JWT_ACCESS_CSRF_COOKIE: bool = os.getenv("JWT_ACCESS_CSRF_COOKIE", "True") == "True"
+    JWT_REFRESH_CSRF_COOKIE: bool = os.getenv("JWT_REFRESH_CSRF_COOKIE", "True") == "True"
+    AUTH_COOKIE_SECURE: bool = os.getenv("AUTH_COOKIE_SECURE", "False") == "True"  # Solo para HTTPS
     JWT_ACCESS_TOKEN_EXPIRES: str = os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "1d")
     JWT_REFRESH_TOKEN_EXPIRES: str = os.getenv("JWT_REFRESH_TOKEN_EXPIRES", "3d")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+    
     DEBUG: bool = True
     PORT: int = 5000
     HOST: str = "127.0.0.1"

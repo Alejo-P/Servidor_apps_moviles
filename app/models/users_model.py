@@ -30,7 +30,7 @@ class User(Base):
             "id": self.id,
             "name": self.name,
             "email": self.email,
-            "roles": [role.to_dict() for role in self.roles]
+            "roles": [role.to_dict()["name"] for role in self.roles]
         }
     
     def check_password(self, password):

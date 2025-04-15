@@ -8,6 +8,7 @@ from app.config.database import get_db
 from app.models.roles_model import Role
 from app.models.users_model import User
 from app.middlewares.auth import auth_user
+from app.middlewares.auth_user_db import auth_user_db
 from app.config.constants import *
 
 # Crear el router para la autenticación
@@ -22,7 +23,11 @@ class RegisterSchema(BaseModel):
 class LoginSchema(BaseModel):
     email: str
     password: str
-
+    
+class RoleUserSchema(BaseModel):
+    role_name: str
+    user_id: int
+    
 @router.post("/register", status_code=status.HTTP_201_CREATED)  # /api/v1/register
 def register(
     data: RegisterSchema,
@@ -55,8 +60,14 @@ def login(
     if not user or not user.check_password(data.password):
         raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
     
-    access_token = Authorize.create_access_token(subject=str(user.id))
-    refresh_token = Authorize.create_refresh_token(subject=str(user.id))
+    # Obtener los roles del usuario y almacenarlas en el token
+    roles = [role.name for role in user.roles]
+    print("Roles -> ",roles)
+    access_token = Authorize.create_access_token(subject=str(user.id), user_claims={"roles": roles})
+    refresh_token = Authorize.create_refresh_token(subject=str(user.id), user_claims={"roles": roles})
+
+    Authorize.set_access_cookies(access_token)
+    Authorize.set_refresh_cookies(refresh_token)
     
     return {
         "access_token": access_token,
@@ -98,7 +109,7 @@ def refresh_token(Authorize: AuthJWT = Depends()):
 
 @router.post("/logout", status_code=status.HTTP_200_OK) # /api/v1/logout
 def logout(
-    Authorize: AuthJWT = Depends()
+    Authorize: AuthJWT = Depends(auth_user([ROLE_ALL]))
 ):
     """Cierra la sesión del usuario."""
     Authorize.jwt_required()
@@ -108,10 +119,10 @@ def logout(
 
 @router.get("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
 def profile(
-    user: User = Depends(auth_user([ROLE_ALL])), # Cambia los roles según tu necesidad
+    user: User = Depends(auth_user_db([ROLE_ALL])), # Cambia los roles según tu necesidad
 ):
     """Devuelve los datos del perfil del usuario autenticado."""
-    return {"user": user.to_dict()}
+    return user.to_dict()
     
 @router.get("/profile/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/profile/<user_id>
 def get_user_profile(
@@ -121,11 +132,70 @@ def get_user_profile(
 ):
     """Devuelve los datos del perfil de un usuario específico."""
     try:
-        Authorize.jwt_required()
         user = db.query(User).get(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
         return {"user": user.to_dict()}
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    
+@router.post("/add_role", status_code=status.HTTP_200_OK) # /api/v1/add_role
+def add_role_to_user(
+    data: RoleUserSchema,
+    Authorize: AuthJWT = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Agrega un rol a un usuario."""
+    try:
+        user = db.query(User).get(data.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        role = db.query(Role).filter_by(name=data.role_name).first()
+        if not role:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
+        
+        # Verificar si el rol ya está asignado al usuario
+        if role in user.roles:
+            raise HTTPException(status_code=400, detail="El rol ya está asignado al usuario")
+        
+        user.roles.append(role)
+        db.commit()
+        db.refresh(user)
+        
+        return {"msg": "Rol agregado exitosamente"}
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+
+@router.delete("/remove_role", status_code=status.HTTP_200_OK) # /api/v1/remove_role
+def remove_role_from_user(
+    data: RoleUserSchema,
+    Authorize: AuthJWT = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Elimina un rol de un usuario."""
+    try:
+        user = db.query(User).get(data.user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        role = db.query(Role).filter_by(name=data.role_name).first()
+        if not role:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
+        
+        # Verificar si el rol ya ha sido removido del usuario
+        if role not in user.roles:
+            raise HTTPException(status_code=400, detail="El rol no está asignado al usuario")
+        
+        # Verificar si el usuario tiene al menos un rol asignado
+        if len(user.roles) <= 1:
+            raise HTTPException(status_code=400, detail="El usuario debe tener al menos un rol asignado")
+        
+        user.roles.remove(role)
+        db.commit()
+        db.refresh(user)
+        
+        return {"msg": "Rol eliminado exitosamente"}
     except (JWTDecodeError, MissingTokenError) as e:
         raise HTTPException(status_code=401, detail="Token inválido o faltante")

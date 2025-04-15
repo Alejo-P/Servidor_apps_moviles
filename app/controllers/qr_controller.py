@@ -6,11 +6,14 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi_jwt_auth import AuthJWT
 from sqlalchemy.orm import Session
 from qrcode import QRCode as QRCodeGen, constants
+
 from app.config.settings import settings as env
 from app.config.database import get_db
 from app.models.qr_model import QRCode
 from app.models.files_model import File as FileModel
 from app.models.users_model import User
+from app.middlewares.auth import auth_user
+from app.config.constants import *
 
 # Crear el router para los códigos QR
 router = APIRouter()
@@ -209,7 +212,7 @@ def view_qr_image(filename: str):
 # Ruta para listar los códigos QR generados
 @router.get("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
 def list_qrs(
-    Authorize: AuthJWT = Depends(),
+    Authorize: AuthJWT = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     Authorize.jwt_required()
