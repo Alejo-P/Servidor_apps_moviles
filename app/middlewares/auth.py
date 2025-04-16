@@ -17,7 +17,7 @@ def auth_user(required_roles: list[str]):
 
             # Si se permite cualquier rol, se omite la verificación
             if ROLE_ALL in required_roles:
-                return {"user_id": user_id, "roles": user_roles}
+                return {"id": user_id, "roles": user_roles}
 
             # Verificar si tiene algún rol permitido
             if not any(role in user_roles for role in required_roles):

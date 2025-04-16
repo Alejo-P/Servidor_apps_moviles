@@ -1,7 +1,6 @@
 import os, uuid
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi_jwt_auth import AuthJWT
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from werkzeug.utils import secure_filename
 
@@ -30,13 +29,11 @@ def get_unique_filename(filename):
 @router.post("/upload", status_code=status.HTTP_201_CREATED) # /api/v1/upload
 def upload_file(
     file: UploadFile = File(...),
-    Authorize: AuthJWT = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Sube un archivo al servidor."""  
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_subject()
-    if user_id is None:
+    if userInfo["id"] is None:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")  
     
     # Verificar si se envió un archivo
@@ -73,7 +70,7 @@ def upload_file(
         filepath=filepath,
         file_size=len(contents),
         file_type=file.content_type if file.content_type else "application/octet-stream",
-        uploaded_by=user_id
+        uploaded_by=userInfo["id"],
     )
     
     # Guardar el registro en la base de datos
@@ -91,23 +88,22 @@ def upload_file(
 @router.get("/file/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/file/<filename>
 def get_file(
     filename: str,
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Devuelve los detalles de un archivo cargado."""
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_subject()
+    user_id = userInfo["id"]
     if user_id is None:
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     # Obtener los claims del JWT
-    claims = Authorize.get_raw_jwt()
-    user_role = claims.get("role")
-    if user_role is None:
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Rol no encontrado"})
+    user_roles = userInfo["roles"]
+    if not user_roles:
+        raise HTTPException(status_code=401, detail="Usuario sin roles asignados")
     
     # Verificar si el archivo existe en la base de datos
-    if user_role != "admin":
+    if ROLE_ADMIN not in user_roles:
+        # Si el usuario no es admin, filtrar por el ID del usuario
         file_record = db.query(FileModel).filter_by(
             filename=filename,
             uploaded_by=user_id
@@ -116,11 +112,11 @@ def get_file(
         file_record = db.query(FileModel).filter_by(filename=filename).first()
     
     if not file_record:
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Archivo no encontrado"})
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en la base de datos")
 
     # Verificar si el archivo existe
     if not os.path.exists(file_record.filepath):
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Archivo no encontrado en el servidor"})
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en el servidor")
     
     # Obtener el nombre de quien subio el archivo en la tabla users de la base de datos
     uploaded_by = file_record.uploaded_by
@@ -139,25 +135,27 @@ def get_file(
     file_data["url"] = f"/view/file/{file_record.filename}"
 
     # Servir la URL de acceso al archivo
-    return JSONResponse(status_code=status.HTTP_200_OK, content={
+    return {
         "msg": "Archivo encontrado",
         "file": file_data
-    })
+    }
 
 # Ruta para descargar un archivo cargado
 @router.get("/download/file/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/download/<filename>
 def download_file(
     filename: str,
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER]))
 ):
     # Ruta completa del archivo
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
     
     # Verificar si el archivo existe
     if not os.path.exists(file_path):
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Archivo no encontrado"})
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
 
     # Enviar el archivo con los encabezados correctos
     return FileResponse(file_path, media_type="application/octet-stream", filename=filename)
+
 # Ruta para visualizar un archivo cargado
 @router.get("/view/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/file/<filename>
 def view_file(
@@ -176,19 +174,17 @@ def view_file(
 # Ruta para listar los archivos subidos
 @router.get("/files", status_code=status.HTTP_200_OK) # /api/v1/files
 def list_files(
-    Autorize: AuthJWT = Depends(auth_user([ROLE_ALL])),
+    userInfo: dict = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """Devuelve una lista de archivos subidos."""
-    Autorize.jwt_required()
-    user_id = Autorize.get_jwt_subject()
-    claims = Autorize.get_raw_jwt()
-    
+    user_id = userInfo["id"]
     if not user_id:
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
-    user_role = claims.get("role")
-    if user_role != ROLE_ADMIN:
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN not in user_roles:
+        # Si el usuario no es admin, filtrar por el ID del usuario
         files_records = db.query(FileModel).filter_by(uploaded_by=user_id).all()
     else:
         files_records = db.query(FileModel).all()
@@ -203,36 +199,34 @@ def list_files(
         files.append(archivo.filename)
     
     if not files:
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "No hay archivos disponibles"})
+        raise HTTPException(status_code=404, detail="No se encontraron archivos")
     
-    return JSONResponse(status_code=status.HTTP_200_OK, content={
+    return {
         "msg": "Archivos encontrados",
         "files": files
-    })
+    }
 
 # Ruta para eliminar un archivo
 @router.delete("/delete/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/delete/file/<filename>
 def delete_file(
     filename:str,
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Elimina un archivo del servidor."""
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_subject()
-    claims = Authorize.get_raw_jwt()
+    user_id = userInfo["id"]
     if user_id is None:
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
-    user_role = claims.get("role")
-    
-    if user_role != "admin":
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN not in user_roles:
+        # Si el usuario no es admin, filtrar por el ID del usuario
         file_record = db.query(FileModel).filter_by(filename=filename, uploaded_by=user_id).first()
     else:
         file_record = db.query(FileModel).filter_by(filename=filename).first()
     
     if not file_record:
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": "Archivo no encontrado"})
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en la base de datos")
 
     # Eliminar el archivo físico
     if os.path.exists(file_record.filepath):
@@ -250,26 +244,24 @@ def delete_file(
     db.delete(file_record)
     db.commit()
 
-    return JSONResponse(status_code=status.HTTP_200_OK, content={
+    return {
         "msg": "Archivo eliminado exitosamente",
         "filename": filename
-    })
+    }
 
 # Ruta para eliminar todos los archivos
 @router.delete("/delete/all", status_code=status.HTTP_200_OK) # /api/v1/delete/all
 def delete_all_files(
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Elimina todos los archivos del servidor."""
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_subject()
-    claims = Authorize.get_raw_jwt()
+    user_id = userInfo["id"]
     if user_id is None:
-        return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
-    user_role = claims.get("role")
-    if user_role != "admin":
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN not in user_roles:
         files_records = db.query(FileModel).filter_by(uploaded_by=user_id).all()
     else:
         files_records = db.query(FileModel).all()
@@ -293,7 +285,7 @@ def delete_all_files(
         db.delete(archivo)
         db.commit()
     
-    return JSONResponse(status_code=status.HTTP_200_OK, content={
+    return {
         "msg": "Archivos eliminados exitosamente",
         "deleted_files": deleted_files
-    })
+    }
