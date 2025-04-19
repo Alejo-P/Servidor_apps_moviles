@@ -72,7 +72,7 @@ def login(
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "user": user.to_dict()
+        "msg": "Inicio de sesión exitoso"
     }
 
 @router.post("/refresh", status_code=status.HTTP_200_OK)  # /api/v1/refresh

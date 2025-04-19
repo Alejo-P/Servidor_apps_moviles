@@ -124,7 +124,7 @@ def get_file(
     file_data = file_record.to_dict()
     if uploaded_by:
         user_record = db.query(User).get(uploaded_by)
-        file_data["uploaded_by"] = {"id": user_record.id, "name": user_record.name, "role": user_record.role} if user_record else "Desconocido"
+        file_data["uploaded_by"] = {"id": user_record.id, "name": user_record.name, "role": user_record.roles} if user_record else "Desconocido"
     
     # Verificar si el archivo tiene un QR asociado
     if file_record.qr_code:

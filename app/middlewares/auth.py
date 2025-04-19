@@ -23,7 +23,7 @@ def auth_user(required_roles: list[str]):
             if not any(role in user_roles for role in required_roles):
                 raise HTTPException(status_code=403, detail="Permisos insuficientes")
 
-            return {"user_id": user_id, "roles": user_roles}
+            return {"id": user_id, "roles": user_roles}
 
         except MissingTokenError:
             raise HTTPException(status_code=401, detail="Token faltante")
