@@ -2,8 +2,7 @@ import os, base64
 from io import BytesIO
 from PIL import Image
 from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, status
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi_jwt_auth import AuthJWT
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from qrcode import QRCode as QRCodeGen, constants
 
@@ -41,7 +40,7 @@ def generate_qr(
     text: str = Form(...),
     name: str = Form(None),
     icon: UploadFile = File(None),
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """
@@ -49,10 +48,9 @@ def generate_qr(
     Si se proporciona un icono, lo agrega al centro del QR.
     """
     # Verificar si el usuario está autenticado
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_identity()
+    user_id = userInfo["id"]
     if user_id is None:
-        return JSONResponse(status_code=401, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     try:
         filename = f"{name or text}.png"
@@ -90,19 +88,30 @@ def generate_qr(
         db.commit()
         db.refresh(qr_entry)
 
-        return JSONResponse(status_code=200, content={"msg": "Código QR generado exitosamente", "filename": filename})
+        return {
+            "msg": "Código QR generado exitosamente",
+            "filename": filename
+        }
     except:
-        return JSONResponse(status_code=500, content={"msg": "Error al generar el código QR"})
+        raise HTTPException(status_code=500, detail="Error al generar el código QR")
+    finally:
+        if icon:
+            icon.file.close()
 
 # Ruta para generar un código QR (A partir de un archivo)
 @router.post("/qr/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/qr/file/<filename>
 def generate_qr_from_file(
     filename: str,
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_identity()
+    """
+    Genera un código QR a partir de un archivo existente en el servidor.
+    El archivo debe estar en la carpeta de archivos subidos.
+    """
+    user_id = userInfo["id"]
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
     if not os.path.exists(file_path):
@@ -111,7 +120,7 @@ def generate_qr_from_file(
     # Si ya existe un QR, devolver una solicitud exitosa
     qr_path = os.path.join(env.QR_FOLDER, f"{filename}.png")
     if os.path.exists(qr_path):
-        return JSONResponse(status_code=200, content={"msg": "Código QR ya generado", "filename": f"{filename}.png"})
+        return {"msg": "Código QR ya generado", "filename": f"{filename}.png"}
     
     try:
         file_url = f"{env.BASE_URL}/files/view/{filename}"  # Ajustar ruta real
@@ -136,25 +145,31 @@ def generate_qr_from_file(
             file_record.qr_code = qr_entry.id
             db.commit()
 
-        return JSONResponse(status_code=200, content={"msg": "Código QR generado exitosamente", "filename": f"{filename}.png"})
+        return {
+            "msg": "Código QR generado exitosamente",
+            "filename": f"{filename}.png"
+        }
     except Exception as e:
-        print(f"Error generando QR: {e}")
-        
-        return JSONResponse(status_code=500, content={"msg": "Error al generar el código QR"})
+        raise HTTPException(status_code=500, detail=f"Error al generar el código QR: {str(e)}")
 
 # Ruta para obtener un código QR
 @router.get("/qr/{filename}", status_code=status.HTTP_200_OK) # /api/v1/qr/<filename>
 def view_qr(
     filename: str,
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_identity()
-    claims = Authorize.get_raw_jwt()
-    user_role = claims.get("role", "")
-
-    if user_role == "admin":
+    """
+    Devuelve los datos de un código QR específico.
+    Si el usuario es admin, puede ver cualquier QR. De lo contrario, solo los suyos.
+    """
+    user_id = userInfo["id"]
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN in user_roles:
+        # Si el usuario es admin, puede ver cualquier QR
         qr_record = db.query(QRCode).filter_by(filename=filename).first()
     else:
         qr_record = db.query(QRCode).filter_by(filename=filename, created_by=user_id).first()
@@ -165,27 +180,32 @@ def view_qr(
     user = db.query(User).filter_by(id=qr_record.created_by).first()
     
     # Servir la URL de acceso al archivo
-    return JSONResponse(status_code=200, content={
+    return {
         "filename": qr_record.filename,
         "text": qr_record.text,
         "created_by": user.to_dict() if user else "Desconocido",
         "created_at": qr_record.created_at.strftime("%Y-%m-%d %H:%M:%S"),
         "filepath": qr_record.filepath
-    })
+    }
 
 # Ruta para descargar un código QR
 @router.get("/download/qr/{filename}", response_class=FileResponse) # /api/v1/download/qr/<filename>
 def download_qr(
     filename: str,
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_identity()
-    claims = Authorize.get_raw_jwt()
-    user_role = claims.get("role", "")
-
-    if user_role == "admin":
+    """
+    Descarga un código QR específico.
+    Si el usuario es admin, puede descargar cualquier QR. De lo contrario, solo los suyos.
+    """
+    user_id = userInfo["id"]
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN in user_roles:
+        # Si el usuario es admin, puede descargar cualquier QR
         qr_record = db.query(QRCode).filter_by(filename=filename).first()
     else:
         qr_record = db.query(QRCode).filter_by(filename=filename, created_by=user_id).first()
@@ -212,20 +232,20 @@ def view_qr_image(filename: str):
 # Ruta para listar los códigos QR generados
 @router.get("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
 def list_qrs(
-    Authorize: AuthJWT = Depends(auth_user([ROLE_ALL])),
+    userInfo: dict = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_subject()
+    """
+    Lista todos los códigos QR generados por el usuario autenticado.
+    Si el usuario es admin, lista todos los códigos QR.
+    """
+    user_id = userInfo["id"]
     if user_id is None:
-        return JSONResponse(status_code=401, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
-    claims = Authorize.get_raw_jwt()
-    if not claims:
-        return JSONResponse(status_code=401, content={"error": "Token inválido"})
-    
-    user_role = claims.get("role")
-    if user_role != "admin":
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN in user_roles:
+        # Si el usuario es admin, listar todos los códigos QR
         qr_records = db.query(QRCode).filter_by(created_by=user_id).all()
     else:
         qr_records = db.query(QRCode).all()
@@ -241,28 +261,31 @@ def list_qrs(
         files.append(qr.filename)
 
     if not files:
-        return JSONResponse(status_code=404, content={"msg": "No se encontraron códigos QR"})
+        raise HTTPException(status_code=404, detail="No se encontraron códigos QR")
 
-    return JSONResponse(status_code=200, content={
+    return {
         "msg": "Códigos QR encontrados",
         "files": files
-    })
+    }
 
 # Ruta para eliminar un código QR
 @router.delete("/qr/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/qr/<filename>
 def delete_qr(
     filename: str,
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_identity()
+    """
+    Elimina un código QR específico.
+    Si el usuario es admin, puede eliminar cualquier QR. De lo contrario, solo los suyos.
+    """
+    user_id = userInfo["id"]
     if user_id is None:
-        return JSONResponse(status_code=401, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     # Verificar si el archivo existe
     if not os.path.exists(os.path.join(env.QR_FOLDER, filename)):
-        return JSONResponse(status_code=404, content={"msg": "Código QR no encontrado"})
+        raise HTTPException(status_code=404, detail="QR no encontrado")
 
     # Eliminar el archivo
     os.remove(os.path.join(env.QR_FOLDER, filename))
@@ -278,18 +301,24 @@ def delete_qr(
         db.delete(qr_entry)
         db.commit()
 
-    return JSONResponse(status_code=200, content={"msg": "Código QR eliminado exitosamente"})
+    return {
+        "msg": "Código QR eliminado exitosamente"
+    }
 
 # Ruta para eliminar todos los códigos QR
 @router.delete("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
 def delete_all_qrs(
-    Authorize: AuthJWT = Depends(),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
-    Authorize.jwt_required()
-    user_id = Authorize.get_jwt_identity()
+    """
+    Elimina todos los códigos QR generados por el usuario autenticado.
+    Si el usuario es admin, elimina todos los códigos QR.
+    """
+    # Verificar si el usuario está autenticado
+    user_id = userInfo["id"]
     if user_id is None:
-        return JSONResponse(status_code=401, content={"error": "Usuario no autenticado"})
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     # Listar archivos en la carpeta de códigos QR
     files = os.listdir(env.QR_FOLDER)
@@ -309,4 +338,6 @@ def delete_all_qrs(
             db.delete(qr_entry)
             db.commit()
 
-    return JSONResponse(status_code=200, content={"msg": "Todos los códigos QR eliminados exitosamente"})
+    return {
+        "msg": "Todos los códigos QR eliminados exitosamente"
+    }
