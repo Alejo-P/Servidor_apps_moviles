@@ -4,9 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config.settings import settings
 from app.controllers import files_controller, qr_controller, auth_controller
-#from app.views import files_view, home_view, qr_view
+from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
-from app.auth import jwt
+from app.auth import jwt # Configuración de JWT (No borrar esta línea)
 
 from dotenv import load_dotenv
 
@@ -36,6 +36,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Configurar el middleware de logging
+#app.add_middleware(RequestLoggerMiddleware)
 
 # Rutas de la API
 app.include_router(files_controller.router, prefix="/api/v1")

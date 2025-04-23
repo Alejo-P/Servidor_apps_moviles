@@ -1,4 +1,4 @@
-import os, uuid
+import os, uuid, base64, mimetypes
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -11,6 +11,8 @@ from app.models.qr_model import QRCode
 from app.models.users_model import User
 from app.middlewares.auth import auth_user
 from app.config.constants import *
+from app.schemas.upload_file_schema import UploadFileSchema
+from app.config.settings import settings
 
 # Crear el router
 router = APIRouter()
@@ -28,6 +30,66 @@ def get_unique_filename(filename):
 # Ruta para subir archivos
 @router.post("/upload", status_code=status.HTTP_201_CREATED) # /api/v1/upload
 def upload_file(
+    file: UploadFileSchema,
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    db: Session = Depends(get_db)
+):
+    """Sube un archivo al servidor."""  
+    if userInfo["id"] is None:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    
+    # Verificar si se envió un archivo
+    if not file:
+        raise HTTPException(status_code=400, detail="No se envió ningún archivo")
+    
+    if file.size > env.MAX_CONTENT_LENGTH:
+        raise HTTPException(status_code=400, detail="El archivo es demasiado grande")
+    
+    # Verificar si el archivo tiene un nombre
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="El archivo no tiene un nombre")
+    
+    # Verificar si la extensión del archivo es permitida
+    if not allowed_file(file.filename):
+        raise HTTPException(status_code=400, detail="Tipo de archivo no permitido")
+    
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(env.UPLOAD_FOLDER, filename)
+    
+    # Comprobar si el archivo ya existe
+    if os.path.exists(filepath):
+        filename = get_unique_filename(filename)
+        filepath = os.path.join(env.UPLOAD_FOLDER, filename)
+        
+    # Guardar el archivo en el servidor
+    with open(filepath, "wb") as f:
+        f.write(
+            base64.b64decode(file.filebase64) if file.filebase64 else file.file.read()
+        )
+    
+    # Crear un registro en la base de datos
+    file_record = FileModel(
+        filename=filename,
+        filepath=filepath,
+        file_size=file.size,
+        file_type=file.filetype if file.filetype else "application/octet-stream",
+        uploaded_by=userInfo["id"],
+    )
+    
+    # Guardar el registro en la base de datos
+    db.add(file_record)
+    db.commit()
+    db.refresh(file_record)
+    
+    return {
+        "msg": "Archivo cargado exitosamente",
+        "filename": filename,
+        "file_id": file_record.id
+    }
+
+# Ruta para subir archivos (sin base64 y con multipart/form-data)
+@router.post("/upload-formdata", status_code=status.HTTP_201_CREATED) # /api/v1/upload-formdata
+def upload_form(
     file: UploadFile = File(...),
     userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
@@ -38,6 +100,7 @@ def upload_file(
     
     # Verificar si se envió un archivo
     contents = file.file.read()
+    file.file.close()
     if not contents:
         raise HTTPException(status_code=400, detail="No se envió ningún archivo")
     
@@ -136,7 +199,7 @@ def get_file(
         file_data["qr_code"] = qr_record.filename if qr_record else None
 
     # En lugar de url_for:
-    file_data["url"] = f"/view/file/{file_record.filename}"
+    file_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/view/file/{file_record.filename}"
 
     # Servir la URL de acceso al archivo
     return {
@@ -163,17 +226,20 @@ def download_file(
 # Ruta para visualizar un archivo cargado
 @router.get("/view/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/file/<filename>
 def view_file(
-    filename:str
+    filename: str,
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    db: Session = Depends(get_db)
 ):
-    # Ruta completa del archivo
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
-
-    # Verificar si el archivo existe
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Archivo no encontrado")        
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
 
-    # Enviar el archivo con los encabezados correctos
-    return FileResponse(file_path, media_type="application/octet-stream", filename=filename)
+    # Detectar el tipo MIME real según la extensión del archivo
+    mime_type, _ = mimetypes.guess_type(file_path)
+    mime_type = mime_type or "application/octet-stream"
+
+    # Enviar el archivo para visualizarlo
+    return FileResponse(path=file_path, media_type=mime_type)
 
 # Ruta para listar los archivos subidos
 @router.get("/files", status_code=status.HTTP_200_OK) # /api/v1/files

@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, JWTDecodeError
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
 
 from app.config.database import get_db
 from app.models.roles_model import Role
@@ -10,23 +9,12 @@ from app.models.users_model import User
 from app.middlewares.auth import auth_user
 from app.middlewares.auth_user_db import auth_user_db
 from app.config.constants import *
+from app.schemas.register_schema import RegisterSchema
+from app.schemas.login_schema import LoginSchema
+from app.schemas.role_user_schema import RoleUserSchema
 
 # Crear el router para la autenticación
 router = APIRouter()
-
-# Configuracin de esquemas
-class RegisterSchema(BaseModel):
-    name: str
-    email: str
-    password: str
-
-class LoginSchema(BaseModel):
-    email: str
-    password: str
-    
-class RoleUserSchema(BaseModel):
-    role_name: str
-    user_id: int
     
 @router.post("/register", status_code=status.HTTP_201_CREATED)  # /api/v1/register
 def register(
@@ -81,7 +69,11 @@ def refresh_token(Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_refresh_token_required()
         current_user = Authorize.get_jwt_subject()
-        new_access_token = Authorize.create_access_token(subject=current_user)
+        user_claims = Authorize.get_raw_jwt()
+        roles = user_claims.get("roles", [])
+        # Crear el token de acceso con los roles del usuario y entregarlo como cookie
+        new_access_token = Authorize.create_access_token(subject=current_user, user_claims={"roles": roles})
+        Authorize.set_access_cookies(new_access_token)
         return {"access_token": new_access_token}
     except RevokedTokenError:
         raise HTTPException(status_code=401, detail="Refresh token revocado")
@@ -119,7 +111,7 @@ def logout(
 
 @router.get("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
 def profile(
-    user: User = Depends(auth_user_db([ROLE_ALL])), # Cambia los roles según tu necesidad
+    user: User = Depends(auth_user_db([ROLE_ALL])),
 ):
     """Devuelve los datos del perfil del usuario autenticado."""
     return user.to_dict()
@@ -127,7 +119,7 @@ def profile(
 @router.get("/profile/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/profile/<user_id>
 def get_user_profile(
     user_id: int,
-    Authorize: AuthJWT = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Devuelve los datos del perfil de un usuario específico."""
@@ -143,7 +135,7 @@ def get_user_profile(
 @router.post("/add_role", status_code=status.HTTP_200_OK) # /api/v1/add_role
 def add_role_to_user(
     data: RoleUserSchema,
-    Authorize: AuthJWT = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Agrega un rol a un usuario."""
@@ -171,7 +163,7 @@ def add_role_to_user(
 @router.delete("/remove_role", status_code=status.HTTP_200_OK) # /api/v1/remove_role
 def remove_role_from_user(
     data: RoleUserSchema,
-    Authorize: AuthJWT = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Elimina un rol de un usuario."""

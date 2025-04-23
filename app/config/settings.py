@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import time
 from typing import ClassVar
 from pydantic import BaseSettings
 from dotenv import load_dotenv
@@ -12,12 +14,11 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"  # Prefijo de la API
     
     BASE_DIR: str = os.path.expanduser("~") # Directorio base (donde se crearan y guardaran los archivos)
+    SERVER_DIR: Path = Path(__file__).resolve().parent.parent  # Directorio del servidor
     APP_DIR: str = os.path.join(BASE_DIR, 'DocTools')  # Directorio de la aplicación
     UPLOAD_FOLDER: str = os.path.join(APP_DIR, 'files')
     QR_FOLDER: str = os.path.join(APP_DIR, 'qrs')
     STATIC_FOLDER: str = os.path.join(APP_DIR, 'static')
-    LOG_FOLDER: str = os.path.join(APP_DIR, 'logs')
-    LOG_FILE: str = os.path.join(LOG_FOLDER, 'app.log')
     
     PYTHONUNBUFFERED: int = 1  # Evita el buffering de salida
     ALLOWED_EXTENSIONS: set = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
@@ -38,6 +39,13 @@ class Settings(BaseSettings):
     
     # Configuración de la base de datos
     DB_URI: str = os.getenv("DB_URI", "mysql+pymysql://user:password@localhost/dbname")
+    
+    # Configuración para el logger
+    LOG_MAX_BYTES: int = 1024 * 1024 * 5  # 5 MB
+    LOG_BACKUP_COUNT: int = 5  # Número de archivos de respaldo
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")  # Nivel de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    LOGS_DIR: str = os.path.join(SERVER_DIR, 'logs', time.strftime("%Y-%m-%d"))  # Carpeta de logs con la fecha actual
     
     class Config:
         env_file = ".env"

@@ -1,4 +1,4 @@
-import os, base64
+import os, base64, mimetypes
 from io import BytesIO
 from PIL import Image
 from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, status
@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from qrcode import QRCode as QRCodeGen, constants
 
-from app.config.settings import settings as env
+from app.config.settings import settings
 from app.config.database import get_db
 from app.models.qr_model import QRCode
 from app.models.files_model import File as FileModel
@@ -55,7 +55,7 @@ def generate_qr(
     try:
         filename = f"{name or text}.png"
         filename = filename.replace(" ", "_")
-        qr_path = os.path.join(env.QR_FOLDER, filename)
+        qr_path = os.path.join(settings.QR_FOLDER, filename)
         
         if os.path.exists(qr_path):
             raise HTTPException(status_code=400, detail="QR para ese texto ya fue generado")
@@ -113,17 +113,17 @@ def generate_qr_from_file(
     if user_id is None:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
-    file_path = os.path.join(env.UPLOAD_FOLDER, filename)
+    file_path = os.path.join(settings.UPLOAD_FOLDER, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
 
     # Si ya existe un QR, devolver una solicitud exitosa
-    qr_path = os.path.join(env.QR_FOLDER, f"{filename}.png")
+    qr_path = os.path.join(settings.QR_FOLDER, f"{filename}.png")
     if os.path.exists(qr_path):
         return {"msg": "Código QR ya generado", "filename": f"{filename}.png"}
     
     try:
-        file_url = f"{env.BASE_URL}/files/view/{filename}"  # Ajustar ruta real
+        file_url = f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{filename}"  # Ajustar ruta real
 
         qr = QRCodeGen()
         qr.add_data(file_url)
@@ -185,7 +185,8 @@ def view_qr(
         "text": qr_record.text,
         "created_by": user.to_dict() if user else "Desconocido",
         "created_at": qr_record.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-        "filepath": qr_record.filepath
+        "filepath": qr_record.filepath,
+        "url": f"{settings.BASE_URL + settings.API_V1_STR}/view/qr/{qr_record.filename}"
     }
 
 # Ruta para descargar un código QR
@@ -224,10 +225,16 @@ def download_qr(
 # Ruta para visualizar un código QR
 @router.get("/view/qr/{filename}", response_class=FileResponse) # /api/v1/view/qr/<filename>
 def view_qr_image(filename: str):
-    path = os.path.join(env.QR_FOLDER, filename)
-    if not os.path.exists(path):
+    file_path = os.path.join(settings.QR_FOLDER, filename)
+    if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="QR no encontrado")
-    return FileResponse(path, media_type="image/png")
+    
+    # Detectar el tipo MIME real según la extensión del archivo
+    mime_type, _ = mimetypes.guess_type(file_path)
+    mime_type = mime_type or "application/octet-stream"
+
+    # Enviar el archivo para visualizarlo
+    return FileResponse(path=file_path, media_type=mime_type)
 
 # Ruta para listar los códigos QR generados
 @router.get("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
@@ -284,11 +291,11 @@ def delete_qr(
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     # Verificar si el archivo existe
-    if not os.path.exists(os.path.join(env.QR_FOLDER, filename)):
+    if not os.path.exists(os.path.join(settings.QR_FOLDER, filename)):
         raise HTTPException(status_code=404, detail="QR no encontrado")
 
     # Eliminar el archivo
-    os.remove(os.path.join(env.QR_FOLDER, filename))
+    os.remove(os.path.join(settings.QR_FOLDER, filename))
     
     # Eliminar el registro de la base de datos
     qr_entry = db.query(QRCode).filter_by(filename=filename).first()
@@ -321,11 +328,11 @@ def delete_all_qrs(
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     # Listar archivos en la carpeta de códigos QR
-    files = os.listdir(env.QR_FOLDER)
+    files = os.listdir(settings.QR_FOLDER)
 
     # Eliminar los códigos QR
     for file in files:
-        os.remove(os.path.join(env.QR_FOLDER, file))
+        os.remove(os.path.join(settings.QR_FOLDER, file))
         
         # Eliminar el registro de la base de datos
         qr_entry =  db.query(QRCode).filter_by(filename=file).first()
