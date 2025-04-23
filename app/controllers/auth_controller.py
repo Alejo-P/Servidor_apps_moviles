@@ -101,7 +101,8 @@ def refresh_token(Authorize: AuthJWT = Depends()):
 
 @router.post("/logout", status_code=status.HTTP_200_OK) # /api/v1/logout
 def logout(
-    Authorize: AuthJWT = Depends(auth_user([ROLE_ALL]))
+    userInfo: dict = Depends(auth_user([ROLE_ALL])),
+    Authorize: AuthJWT = Depends()
 ):
     """Cierra la sesión del usuario."""
     Authorize.jwt_required()
