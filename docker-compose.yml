@@ -13,6 +13,7 @@ services:
         condition: service_healthy
     volumes:
       - .:/app:cached  # 🔥 Usa un volumen administrado por Docker
+      - DocTools:/root/DocTools:cached  # 🔥 Usa un volumen administrado por Docker
     environment:
       - DB_URI=${DB_URI}
       - PYTHONUNBUFFERED=1
