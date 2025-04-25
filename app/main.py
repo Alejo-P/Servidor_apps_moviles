@@ -1,6 +1,9 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 
 from app.config.settings import settings
 from app.controllers import files_controller, qr_controller, auth_controller
@@ -47,3 +50,15 @@ app.include_router(auth_controller.router, prefix="/api/v1")
 # app.include_router(files_view.router, prefix="/views")
 # app.include_router(home_view.router, prefix="/views")
 # app.include_router(qr_view.router, prefix="/views")
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = []
+    for err in exc.errors():
+        loc = " -> ".join(str(x) for x in err['loc'])
+        msg = f"Error en '{loc}': {err['msg']}"
+        errors.append(msg)
+    return JSONResponse(
+        status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": errors}
+    )

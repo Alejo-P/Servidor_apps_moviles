@@ -129,7 +129,7 @@ def get_user_profile(
         if not user:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
         
-        return {"user": user.to_dict()}
+        return user.to_dict()
     except (JWTDecodeError, MissingTokenError) as e:
         raise HTTPException(status_code=401, detail="Token inválido o faltante")
     
