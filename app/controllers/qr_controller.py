@@ -251,7 +251,7 @@ def list_qrs(
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     user_roles = userInfo["roles"]
-    if ROLE_ADMIN in user_roles:
+    if ROLE_ADMIN not in user_roles:
         # Si el usuario es admin, listar todos los códigos QR
         qr_records = db.query(QRCode).filter_by(created_by=user_id).all()
     else:

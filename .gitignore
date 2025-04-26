@@ -12,6 +12,7 @@
 *.spec
 *.orig
 *.log
+*.sql
 conf.json
 
 /uploads/

@@ -42,16 +42,17 @@ services:
       retries: 5
       start_period: 40s
     volumes:
-      - ./mysql:/var/lib/mysql  # 🔥 Usa un volumen administrado por Docker
+      - mysql:/var/lib/mysql  # 🔥 Usa un volumen administrado por Docker
     
   phpmyadmin-server:
     image: phpmyadmin/phpmyadmin
     container_name: phpmyadmin-server
     environment:
       PMA_HOST: mysql-server
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "8080:80"
+      - "127.0.0.1:8080:80"
     networks:
       - red
     depends_on:
