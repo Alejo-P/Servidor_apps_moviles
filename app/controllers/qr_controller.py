@@ -13,6 +13,7 @@ from app.models.files_model import File as FileModel
 from app.models.users_model import User
 from app.middlewares.auth import auth_user
 from app.config.constants import *
+from app.schemas.qr_schema import QRCodeSchema
 
 # Crear el router para los códigos QR
 router = APIRouter()
@@ -37,8 +38,7 @@ def add_icon_to_qr(qr_img, icon_img):
 # Ruta para generar un código QR con icono opcional
 @router.post("/qr", status_code=status.HTTP_200_OK)  # /api/v1/qr
 def generate_qr(
-    text: str = Form(...),
-    name: str = Form(None),
+    form_data: QRCodeSchema = Depends(QRCodeSchema.as_form),  # <-- ahora traemos 'text' y 'name' juntos
     icon: UploadFile = File(None),
     userInfo: dict = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
@@ -53,7 +53,7 @@ def generate_qr(
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
     try:
-        filename = f"{name or text}.png"
+        filename = f"{form_data.name or form_data.text}.png"
         filename = filename.replace(" ", "_")
         qr_path = os.path.join(settings.QR_FOLDER, filename)
         
@@ -67,7 +67,7 @@ def generate_qr(
             box_size=10,
             border=4,
         )
-        qr.add_data(text)
+        qr.add_data(form_data.text)
         qr.make(fit=True)
         qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGBA")
         
@@ -80,7 +80,8 @@ def generate_qr(
         # Guardar en la base de datos
         qr_entry = QRCode(
             filename=filename,
-            text=text,
+            file_attach=None,  # No se adjunta un archivo
+            text=form_data.text,
             filepath=qr_path,
             created_by=user_id
         )
@@ -116,6 +117,10 @@ def generate_qr_from_file(
     file_path = os.path.join(settings.UPLOAD_FOLDER, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    
+    file_record = db.query(FileModel).filter_by(filename=filename).first()
+    if not file_record:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado en la base de datos")
 
     # Si ya existe un QR, devolver una solicitud exitosa
     qr_path = os.path.join(settings.QR_FOLDER, f"{filename}.png")
@@ -133,6 +138,7 @@ def generate_qr_from_file(
 
         qr_entry = QRCode(
             filename=f"{filename}.png",
+            file_attach=file_record.id, # ID del archivo adjunto
             text=file_url,
             filepath=qr_path,
             created_by=user_id
@@ -179,8 +185,7 @@ def view_qr(
 
     user = db.query(User).filter_by(id=qr_record.created_by).first()
     
-    # Servir la URL de acceso al archivo
-    return {
+    data = {
         "filename": qr_record.filename,
         "text": qr_record.text,
         "created_by": user.to_dict() if user else "Desconocido",
@@ -188,6 +193,22 @@ def view_qr(
         "filepath": qr_record.filepath,
         "url": f"{settings.BASE_URL + settings.API_V1_STR}/view/qr/{qr_record.filename}"
     }
+    
+    # Si el QR tiene un archivo adjunto, incluirlo en la respuesta
+    if qr_record.file_attach:
+        file_record = db.query(FileModel).filter_by(id=qr_record.file_attach).first()
+        if file_record:
+            data["attached_file"] = {
+                "filename": file_record.filename,
+                "url": f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{file_record.filename}"
+            }
+        else:
+            data["attached_file"] = None
+    else:
+        data["attached_file"] = None
+    
+    # Servir la URL de acceso al archivo
+    return data
 
 # Ruta para descargar un código QR
 @router.get("/download/qr/{filename}", response_class=FileResponse) # /api/v1/download/qr/<filename>
@@ -267,13 +288,12 @@ def list_qrs(
         
         files.append(qr.filename)
 
-    if not files:
-        raise HTTPException(status_code=404, detail="No se encontraron códigos QR")
-
-    return {
-        "msg": "Códigos QR encontrados",
-        "files": files
+    data = {
+        "msg": "Códigos QR encontrados" if files else "No se encontraron códigos QR",
+        "files": files        
     }
+
+    return data
 
 # Ruta para eliminar un código QR
 @router.delete("/qr/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/qr/<filename>

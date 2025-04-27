@@ -268,13 +268,12 @@ def list_files(
         
         files.append(archivo.filename)
     
-    if not files:
-        raise HTTPException(status_code=404, detail="No se encontraron archivos")
-    
-    return {
-        "msg": "Archivos encontrados",
+    data ={
+        "msg": "Archivos encontrados" if files else "No se encontraron archivos",
         "files": files
     }
+    
+    return data
 
 # Ruta para eliminar un archivo
 @router.delete("/delete/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/delete/file/<filename>
