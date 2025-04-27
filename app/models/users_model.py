@@ -13,6 +13,9 @@ class User(Base):
     name = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
+    avatar_url = Column(String(255), nullable=True)  # URL de la imagen del avatar
+    avatar_public_id = Column(String(255), nullable=True)  # ID público de la imagen del avatar
+    avatar_format = Column(String(50), nullable=True)  # Formato de la imagen del avatar
     # roles -> Lista de roles del usuario 
     roles = relationship("Role", secondary=user_roles, backref="users")
     
@@ -30,6 +33,11 @@ class User(Base):
             "id": self.id,
             "name": self.name,
             "email": self.email,
+            "avatar":{
+                "url": self.avatar_url,
+                "public_id": self.avatar_public_id,
+                "format": self.avatar_format
+            },
             "roles": [role.to_dict()["name"] for role in self.roles]
         }
     

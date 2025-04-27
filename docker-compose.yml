@@ -24,6 +24,10 @@ services:
       - JWT_REFRESH_TOKEN_EXPIRES=${JWT_REFRESH_TOKEN_EXPIRES}
       - JWT_ACCESS_CSRF_COOKIE=${JWT_ACCESS_CSRF_COOKIE}
       - JWT_REFRESH_CSRF_COOKIE=${JWT_REFRESH_CSRF_COOKIE}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+      - CLOUDINARY_URL=${CLOUDINARY_URL}
 
   mysql-server:
     image: mysql:8.0
@@ -48,7 +52,7 @@ services:
     image: phpmyadmin/phpmyadmin
     container_name: phpmyadmin-server
     environment:
-      PMA_HOST: mysql-server
+      PMA_HOST: ${DB_HOST}
       PMA_USER: ${DB_USER}
       PMA_PASSWORD: ${DB_PASSWORD}
     ports:

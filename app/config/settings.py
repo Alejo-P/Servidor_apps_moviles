@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     PORT: int = 5000
     HOST: str = "127.0.0.1"
     
+    # Configuración de Cloudinary
+    CLOUDINARY_CLOUD_NAME: str = os.getenv("CLOUDINARY_CLOUD_NAME", "")
+    CLOUDINARY_API_KEY: str = os.getenv("CLOUDINARY_API_KEY", "")
+    CLOUDINARY_API_SECRET: str = os.getenv("CLOUDINARY_API_SECRET", "")
+    CLOUDINARY_URL: str = os.getenv("CLOUDINARY_URL", "")
+    
     # Configuración de la base de datos
     DB_URI: str = os.getenv("DB_URI", "mysql+pymysql://user:password@localhost/dbname")
     

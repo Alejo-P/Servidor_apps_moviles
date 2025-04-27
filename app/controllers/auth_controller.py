@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, JWTDecodeError
 from sqlalchemy.orm import Session
+import cloudinary.uploader
 
 from app.config.database import get_db
 from app.models.roles_model import Role
@@ -116,6 +117,47 @@ def profile(
 ):
     """Devuelve los datos del perfil del usuario autenticado."""
     return user.to_dict()
+
+@router.put("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
+def update_profile(
+    data: RegisterSchema,
+    user: User = Depends(auth_user_db([ROLE_ALL])),
+    db: Session = Depends(get_db)
+):
+    """Actualiza los datos del perfil del usuario autenticado."""
+    if db.query(User).filter(User.email == data.email, User.id != user.id).first():
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    
+    user.name = data.name
+    user.email = data.email
+    user.password = data.password
+    db.commit()
+    db.refresh(user)
+    
+    return {"msg": "Perfil actualizado exitosamente"}
+
+@router.put("/profile/upload_avatar", status_code=status.HTTP_200_OK) # /api/v1/profile/upload_avatar
+def upload_avatar(
+    file: UploadFile = File(...),
+    user: User = Depends(auth_user_db([ROLE_ALL])),
+    db: Session = Depends(get_db)
+):
+    """Sube una imagen de perfil para el usuario autenticado."""
+    if not file:
+        raise HTTPException(status_code=400, detail="No se ha subido ningún archivo")
+    
+    # Subir la imagen a Cloudinary
+    try:
+        upload_result = cloudinary.uploader.upload(file.file, folder="avatars")
+        user.avatar_url = upload_result["secure_url"] # URL segura de la imagen
+        user.avatar_public_id = upload_result["public_id"] # ID público de la imagen
+        user.avatar_format = upload_result["format"] # Formato de la imagen
+        db.commit()
+        db.refresh(user)
+        
+        return {"msg": "Avatar subido exitosamente", "avatar_url": user.avatar_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
 @router.get("/profile/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/profile/<user_id>
 def get_user_profile(
