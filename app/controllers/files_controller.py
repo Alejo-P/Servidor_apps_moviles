@@ -335,9 +335,10 @@ def delete_all_files(
     else:
         files_records = db.query(FileModel).all()
     
-    # Eliminar archivos en la carpeta de subida
-    deleted_files = []
-
+    # Eliminar archivos en la carpeta de subidas
+    if not files_records:
+        raise HTTPException(status_code=404, detail="No se encontraron archivos para eliminar")
+    
     for archivo in files_records:
         if os.path.exists(archivo.filepath):
             os.remove(archivo.filepath)
@@ -350,11 +351,9 @@ def delete_all_files(
                 db.delete(qr_record)
                 db.commit()
 
-        deleted_files.append(archivo.filename)
         db.delete(archivo)
         db.commit()
     
     return {
-        "msg": "Archivos eliminados exitosamente",
-        "deleted_files": deleted_files
+        "msg": "Archivos eliminados exitosamente"
     }

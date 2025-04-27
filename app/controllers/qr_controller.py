@@ -310,15 +310,22 @@ def delete_qr(
     if user_id is None:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
-    # Verificar si el archivo existe
-    if not os.path.exists(os.path.join(settings.QR_FOLDER, filename)):
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN in user_roles:
+        # Si el usuario es admin, puede eliminar cualquier QR
+        qr_entry = db.query(QRCode).filter_by(filename=filename).first()
+    else:
+        qr_entry = db.query(QRCode).filter_by(filename=filename, created_by=user_id).first()
+        
+    if not qr_entry:
         raise HTTPException(status_code=404, detail="QR no encontrado")
-
-    # Eliminar el archivo
-    os.remove(os.path.join(settings.QR_FOLDER, filename))
+    
+    # Verificar si el archivo existe
+    if os.path.exists(qr_entry.filepath):
+        # Eliminar el archivo
+        os.remove(qr_entry.filepath)
     
     # Eliminar el registro de la base de datos
-    qr_entry = db.query(QRCode).filter_by(filename=filename).first()
     file_record = db.query(FileModel).filter_by(qr_code=qr_entry.id).first()
     if file_record:
         file_record.qr_code = None
@@ -335,7 +342,7 @@ def delete_qr(
 # Ruta para eliminar todos los códigos QR
 @router.delete("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
 def delete_all_qrs(
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """
@@ -347,15 +354,26 @@ def delete_all_qrs(
     if user_id is None:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
     
-    # Listar archivos en la carpeta de códigos QR
-    files = os.listdir(settings.QR_FOLDER)
+    user_roles = userInfo["roles"]
+    if ROLE_ADMIN in user_roles:
+        # Si el usuario es admin, puede eliminar cualquier QR
+        qr_records = db.query(QRCode).all()
+    else:
+        qr_records = db.query(QRCode).filter_by(created_by=user_id).all()
+        
+    if not qr_records:
+        raise HTTPException(status_code=404, detail="No se encontraron códigos QR para eliminar")
 
     # Eliminar los códigos QR
-    for file in files:
-        os.remove(os.path.join(settings.QR_FOLDER, file))
+    for qr_entry in qr_records:
+        # Verificar si el archivo existe
+        if os.path.exists(qr_entry.filepath):
+            # Eliminar el archivo
+            os.remove(qr_entry.filepath)
         
         # Eliminar el registro de la base de datos
-        qr_entry =  db.query(QRCode).filter_by(filename=file).first()
+        # Verificar si el QR tiene un archivo adjunto
+        # y eliminar la referencia en el modelo de archivo
         file_record = db.query(FileModel).filter_by(qr_code=qr_entry.id).first()
         if file_record:
             file_record.qr_code = None
