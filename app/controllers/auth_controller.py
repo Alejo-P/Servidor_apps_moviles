@@ -3,13 +3,19 @@ from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, JWTDecodeError
 from sqlalchemy.orm import Session
 import cloudinary.uploader
+from PIL import Image
+import io
+import hashlib
 
 from app.config.database import get_db
 from app.models.roles_model import Role
 from app.models.users_model import User
+from app.models.avatarImages_model import AvatarImage
 from app.middlewares.auth import auth_user
 from app.middlewares.auth_user_db import auth_user_db
 from app.config.constants import *
+from app.config.settings import settings
+from app.schemas.Upload_avatar_schema import AvatarUploadForm
 from app.schemas.register_schema import RegisterSchema
 from app.schemas.login_schema import LoginSchema
 from app.schemas.role_user_schema import RoleUserSchema
@@ -136,28 +142,98 @@ def update_profile(
     
     return {"msg": "Perfil actualizado exitosamente"}
 
-@router.put("/profile/upload_avatar", status_code=status.HTTP_200_OK) # /api/v1/profile/upload_avatar
-def upload_avatar(
+@router.put("/profile/upload_avatar", status_code=status.HTTP_200_OK)
+async def upload_avatar(
+    form_data: AvatarUploadForm = Depends(AvatarUploadForm.as_form),
     file: UploadFile = File(...),
-    user: User = Depends(auth_user_db([ROLE_ALL])),
+    userInfo: dict = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
-    """Sube una imagen de perfil para el usuario autenticado."""
+    """Sube una imagen de perfil para el usuario autenticado con validaciones."""
     if not file:
         raise HTTPException(status_code=400, detail="No se ha subido ningún archivo")
-    
-    # Subir la imagen a Cloudinary
+
+    user_id = userInfo.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+
     try:
+        requested_user_id = int(form_data.user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de usuario inválido")
+
+    user_roles = userInfo.get("roles", [])
+
+    if ROLE_ADMIN in user_roles:
+        user = db.get(User, requested_user_id)
+    else:
+        if user_id != requested_user_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el avatar de otro usuario")
+        user = db.get(User, user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Validar el archivo
+    try:
+        file_content = await file.read()
+        
+        # Calcular hash de la imagen
+        image_hash = hashlib.sha256(file_content).hexdigest()
+        
+        # Buscar si ya existe ese hash en la base
+        existing_avatar = db.query(AvatarImage).filter_by(hash_id=image_hash).first()
+        
+        if existing_avatar:
+            user.avatar_id = existing_avatar.id
+            db.commit()
+            db.refresh(user)
+            return {
+                "msg": "Avatar asignado exitosamente (imagen ya existente)",
+                "avatar": existing_avatar.to_dict()
+            }
+
+        file_size_mb = len(file_content) / (1024 * 1024)
+        if file_size_mb > settings.MAX_FILE_SIZE_MB:
+            raise HTTPException(status_code=400, detail=f"El archivo supera el tamaño máximo permitido de {settings.MAX_FILE_SIZE_MB}MB")
+
+        if file.content_type not in settings.ALLOWED_MIME_TYPES:
+            raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: {file.content_type}")
+
+        # Validar si es cuadrada
+        try:
+            image = Image.open(io.BytesIO(file_content))
+            if image.width != image.height:
+                raise HTTPException(status_code=400, detail="La imagen debe ser cuadrada (mismo ancho y alto)")
+        except Exception:
+            raise HTTPException(status_code=400, detail="No se pudo analizar la imagen para validar dimensiones")
+
+        file.file.seek(0)
+
         upload_result = cloudinary.uploader.upload(file.file, folder="avatars")
-        user.avatar_url = upload_result["secure_url"] # URL segura de la imagen
-        user.avatar_public_id = upload_result["public_id"] # ID público de la imagen
-        user.avatar_format = upload_result["format"] # Formato de la imagen
+        new_avatar = AvatarImage(
+            url=upload_result["secure_url"],
+            public_id=upload_result["public_id"],
+            hash_id=image_hash, # Guardamos el hash como identificador local
+            format=upload_result["format"],
+            width=upload_result.get("width"),
+            height=upload_result.get("height")
+        )
+        db.add(new_avatar)
+        db.commit()
+        db.refresh(new_avatar)
+        
+        # Asignar nuevo avatar al usuario
+        user.avatar_id = new_avatar.id
         db.commit()
         db.refresh(user)
-        
-        return {"msg": "Avatar subido exitosamente", "avatar_url": user.avatar_url}
+
+        return {
+            "msg": "Avatar subido exitosamente",
+            "avatar": new_avatar.to_dict()
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error al subir avatar: {str(e)}")
     
 @router.get("/profile/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/profile/<user_id>
 def get_user_profile(

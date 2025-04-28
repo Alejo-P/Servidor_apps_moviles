@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     PORT: int = 5000
     HOST: str = "127.0.0.1"
+    MAX_FILE_SIZE_MB: int = 2
+    ALLOWED_MIME_TYPES: list = ["image/jpeg", "image/png", "image/webp"]
     
     # Configuración de Cloudinary
     CLOUDINARY_CLOUD_NAME: str = os.getenv("CLOUDINARY_CLOUD_NAME", "")

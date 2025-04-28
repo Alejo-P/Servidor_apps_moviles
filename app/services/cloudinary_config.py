@@ -1,6 +1,4 @@
 import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 from app.config.settings import settings
 
 # Configuración inicial

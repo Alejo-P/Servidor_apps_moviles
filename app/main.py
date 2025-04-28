@@ -4,11 +4,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config.settings import settings
 from app.controllers import files_controller, qr_controller, auth_controller
 from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
+import app.services.cloudinary_config  # Configuración de Cloudinary (No borrar esta línea)
 from app.auth import jwt # Configuración de JWT (No borrar esta línea)
 
 from dotenv import load_dotenv
@@ -62,3 +64,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": errors}
     )
+    
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 404:
+        return JSONResponse(
+            status_code=404,
+            content={"detail": "Oops! El recurso que buscas no existe. Verifica la URL 🚀"},
+        )
+    elif exc.status_code == 405:
+        return JSONResponse(
+            status_code=405,
+            content={"detail": "¡Método no permitido! Intenta con otra operación 🤔"},
+        )
+    else:
+        # Para cualquier otro HTTPException que no sea 404 o 405
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+        )
