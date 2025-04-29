@@ -1,6 +1,7 @@
 from app.config.database import Base
 from app.models.userRoles_model import user_roles
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates
 from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -14,6 +15,7 @@ class User(Base):
     password = Column(String(255), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     avatar_id = Column(Integer, ForeignKey("avatar_images.id"), nullable=True)
+    is_active = Column(Boolean, default=True)
 
     # roles -> Lista de roles del usuario 
     roles = relationship("Role", secondary=user_roles, backref="users")
@@ -33,6 +35,7 @@ class User(Base):
             "id": self.id,
             "name": self.name,
             "email": self.email,
+            "is_active": self.is_active,
             "avatar": self.avatar.to_dict() if self.avatar else None,
             "roles": [role.to_dict()["name"] for role in self.roles]
         }

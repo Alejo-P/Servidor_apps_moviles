@@ -39,5 +39,6 @@ def auth_user_db(required_roles: list[str]):
         except JWTDecodeError:
             raise HTTPException(status_code=401, detail="Token inválido o expirado")
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            raise HTTPException(status_code=401, detail=e.message if hasattr(e, 'message') else str(e))
+    
     return wrapper

@@ -19,6 +19,7 @@ from app.schemas.Upload_avatar_schema import AvatarUploadForm
 from app.schemas.register_schema import RegisterSchema
 from app.schemas.login_schema import LoginSchema
 from app.schemas.role_user_schema import RoleUserSchema
+from app.schemas.update_profile_schema import UpdatePasswordSchema, UpdateProfileSchema
 
 # Crear el router para la autenticación
 router = APIRouter()
@@ -126,7 +127,7 @@ def profile(
 
 @router.put("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
 def update_profile(
-    data: RegisterSchema,
+    data: UpdateProfileSchema,
     user: User = Depends(auth_user_db([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
@@ -136,11 +137,60 @@ def update_profile(
     
     user.name = data.name
     user.email = data.email
-    user.password = data.password
     db.commit()
     db.refresh(user)
     
-    return {"msg": "Perfil actualizado exitosamente"}
+    return {
+        "msg": "Perfil actualizado exitosamente",
+        "user": user.to_dict()
+    }
+    
+@router.put("/profile/change_password", status_code=status.HTTP_200_OK) # /api/v1/profile/change_password   
+def change_password(
+    data: UpdatePasswordSchema,
+    user: User = Depends(auth_user_db([ROLE_ALL])),
+    db: Session = Depends(get_db)
+):
+    """Cambia la contraseña del usuario autenticado."""
+    if not user.check_password(data.current_password):
+        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+    
+    if data.new_password != data.confirm_password:
+        raise HTTPException(status_code=400, detail="Las contraseñas no coinciden")
+    
+    user.password = data.new_password
+    db.commit()
+    db.refresh(user)
+    
+    return {"msg": "Contraseña cambiada exitosamente"}
+    
+@router.delete("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
+def delete_profile(
+    user_id: int,
+    user_info: dict = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Desactivar el perfil del usuario."""
+    user_roles = user_info.get("roles", [])
+    if ROLE_ADMIN in user_roles:
+        user = db.get(User, user_id)
+    else:
+        user = db.get(User, user_info.get("id"))
+        if user.id != user_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso para eliminar el perfil de otro usuario")
+        
+    user.is_active = False
+    db.commit()
+    db.refresh(user)
+    # Eliminar el avatar del usuario si existe
+    if user.avatar_id:
+        avatar = db.get(AvatarImage, user.avatar_id)
+        if avatar:
+            db.delete(avatar)
+            db.commit()
+            db.refresh(avatar)
+             
+    return {"msg": "Perfil eliminado exitosamente"}
 
 @router.put("/profile/upload_avatar", status_code=status.HTTP_200_OK)
 async def upload_avatar(
