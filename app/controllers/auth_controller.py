@@ -145,7 +145,7 @@ def update_profile(
         "user": user.to_dict()
     }
     
-@router.put("/profile/change_password", status_code=status.HTTP_200_OK) # /api/v1/profile/change_password   
+@router.put("/profile/update_password", status_code=status.HTTP_200_OK) # /api/v1/profile/update_password   
 def change_password(
     data: UpdatePasswordSchema,
     user: User = Depends(auth_user_db([ROLE_ALL])),
@@ -154,6 +154,17 @@ def change_password(
     """Cambia la contraseña del usuario autenticado."""
     if not user.check_password(data.current_password):
         raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+    
+    # Verificar que la nueva contraseña no sea igual a la actual
+    if data.new_password == data.current_password:
+        raise HTTPException(status_code=400, detail="La nueva contraseña no puede ser igual a la actual")
+    
+    # Verificar que la nueva contraseña cumpla con los requisitos
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 8 caracteres")
+    
+    if not any(char.isdigit() for char in data.new_password):
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe contener al menos un número")
     
     if data.new_password != data.confirm_password:
         raise HTTPException(status_code=400, detail="Las contraseñas no coinciden")

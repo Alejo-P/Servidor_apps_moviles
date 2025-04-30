@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, Request
+from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -10,8 +11,8 @@ from app.config.settings import settings
 from app.controllers import files_controller, qr_controller, auth_controller
 from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
-import app.services.cloudinary_config  # Configuración de Cloudinary (No borrar esta línea)
-from app.auth import jwt # Configuración de JWT (No borrar esta línea)
+import app.services.cloudinary_config # noqa: F401 - Necesario para configurar Cloudinary
+from app.auth import jwt # noqa: F401 - Inicializa JWT automáticamente
 
 from dotenv import load_dotenv
 
