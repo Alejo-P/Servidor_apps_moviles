@@ -8,7 +8,7 @@ from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config.settings import settings
-from app.controllers import files_controller, qr_controller, auth_controller
+from app.controllers import files_controller, qr_controller, auth_controller, admin_controller
 from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
 import app.services.cloudinary_config # noqa: F401 - Necesario para configurar Cloudinary
@@ -37,7 +37,7 @@ app = FastAPI(
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Cambia esto por los dominios permitidos
+    allow_origins=[settings.URL_FRONTEND],  # Cambia esto por los dominios permitidos
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,9 +50,7 @@ app.add_middleware(
 app.include_router(files_controller.router, prefix="/api/v1")
 app.include_router(qr_controller.router, prefix="/api/v1")
 app.include_router(auth_controller.router, prefix="/api/v1")
-# app.include_router(files_view.router, prefix="/views")
-# app.include_router(home_view.router, prefix="/views")
-# app.include_router(qr_view.router, prefix="/views")
+app.include_router(admin_controller.router, prefix="/api/v1")
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

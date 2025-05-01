@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     """Configuración de la aplicación."""
     BASE_URL: ClassVar[str] = os.getenv("BASE_URL", "http://localhost:5000")
     API_V1_STR: str = "/api/v1"  # Prefijo de la API
+    URL_FRONTEND: str = os.getenv("URL_FRONTEND", "http://localhost:5173")  # URL del frontend
     
     BASE_DIR: str = os.path.expanduser("~") # Directorio base (donde se crearan y guardaran los archivos)
     SERVER_DIR: Path = Path(__file__).resolve().parent.parent  # Directorio del servidor
