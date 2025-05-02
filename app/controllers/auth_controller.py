@@ -195,11 +195,12 @@ async def upload_avatar(
         raise HTTPException(status_code=400, detail="ID de usuario inválido")
 
     user_roles = userInfo.get("roles", [])
+    print("User ID -> ", user_id, "Requested User ID -> ", requested_user_id, "User Roles -> ", user_roles)
 
     if ROLE_ADMIN in user_roles:
         user = db.get(User, requested_user_id)
     else:
-        if user_id != requested_user_id:
+        if int(user_id) != requested_user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el avatar de otro usuario")
         user = db.get(User, user_id)
 

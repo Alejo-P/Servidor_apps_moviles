@@ -28,7 +28,7 @@ def get_user_profile(
         raise HTTPException(status_code=401, detail="Token inválido o faltante")
     
 
-@router.get("/profiles", status_code=status.HTTP_200_OK) # /api/v1/profiles
+@router.get("/users", status_code=status.HTTP_200_OK) # /api/v1/users
 def get_all_profiles(
     userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
