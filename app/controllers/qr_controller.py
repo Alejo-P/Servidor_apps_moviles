@@ -165,7 +165,7 @@ def view_qr(
     Devuelve los datos de un código QR específico.
     Si el usuario es admin, puede ver cualquier QR. De lo contrario, solo los suyos.
     """
-    user_id = userInfo-id
+    user_id = userInfo.id
     
     user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
