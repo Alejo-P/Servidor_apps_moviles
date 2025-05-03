@@ -11,10 +11,23 @@ from app.schemas.role_user_schema import RoleUserSchema
 
 router = APIRouter()
 
-@router.get("/profile/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/profile/<user_id>
+@router.get("/users", status_code=status.HTTP_200_OK) # /api/v1/users
+def get_all_profiles(
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Devuelve todos los perfiles de usuario."""
+    try:
+        users = db.query(User).all()
+        return [user.to_dict() for user in users]
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+
+
+@router.get("/user/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/<user_id>
 def get_user_profile(
     user_id: int,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Devuelve los datos del perfil de un usuario específico."""
@@ -26,23 +39,32 @@ def get_user_profile(
         return user.to_dict()
     except (JWTDecodeError, MissingTokenError) as e:
         raise HTTPException(status_code=401, detail="Token inválido o faltante")
-    
 
-@router.get("/users", status_code=status.HTTP_200_OK) # /api/v1/users
-def get_all_profiles(
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
+
+@router.post("/user/activate/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/activate/<user_id>
+def activate_user_profile(
+    user_id: int,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
-    """Devuelve todos los perfiles de usuario."""
-    try:
-        users = db.query(User).all()
-        return [user.to_dict() for user in users]
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
-    
+    """Activar el perfil del usuario."""
+    user_roles = [role.name for role in userInfo.roles]
+    if ROLE_ADMIN in user_roles:
+        user = db.get(User, user_id)
+    else:
+        user = db.get(User, userInfo.id)
+        if userInfo.id != user_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso para activar el perfil de otro usuario")
+        
+    user.is_active = True
+    db.commit()
+    db.refresh(user)
+             
+    return {"msg": "Perfil activado exitosamente"}
 
-@router.delete("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
-def delete_profile(
+
+@router.post("/user/deactivate/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/deactivate/<user_id>
+def delete_user(
     user_id: int,
     user_info: dict = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
@@ -60,13 +82,37 @@ def delete_profile(
     db.commit()
     db.refresh(user)
              
-    return {"msg": "Perfil eliminado exitosamente"}
+    return {"msg": "Perfil desactivado exitosamente"}
+
+
+@router.put("/user/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/<user_id>
+def update_user_profile(
+    user_id: int,
+    user_info: dict = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Actualizar el perfil del usuario."""
+    user_roles = user_info.get("roles", [])
+    if ROLE_ADMIN in user_roles:
+        user = db.get(User, user_id)
+    else:
+        user = db.get(User, user_info.get("id"))
+        if user.id != user_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso para actualizar el perfil de otro usuario")
+        
+    # Aquí puedes agregar la lógica para actualizar los datos del usuario
+    # Por ejemplo, si estás usando un esquema Pydantic para validar los datos de entrada
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {"msg": "Perfil actualizado exitosamente"}
 
  
 @router.post("/add_role", status_code=status.HTTP_200_OK) # /api/v1/add_role
 def add_role_to_user(
     data: RoleUserSchema,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Agrega un rol a un usuario."""
@@ -95,7 +141,7 @@ def add_role_to_user(
 @router.delete("/remove_role", status_code=status.HTTP_200_OK) # /api/v1/remove_role
 def remove_role_from_user(
     data: RoleUserSchema,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Elimina un rol de un usuario."""
