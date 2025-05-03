@@ -40,7 +40,7 @@ def add_icon_to_qr(qr_img, icon_img):
 def generate_qr(
     form_data: QRCodeSchema = Depends(QRCodeSchema.as_form),  # <-- ahora traemos 'text' y 'name' juntos
     icon: UploadFile = File(None),
-    userInfo: dict = Depends(auth_user([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """
@@ -48,9 +48,7 @@ def generate_qr(
     Si se proporciona un icono, lo agrega al centro del QR.
     """
     # Verificar si el usuario está autenticado
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
     try:
         filename = f"{form_data.name or form_data.text}.png"
@@ -103,16 +101,14 @@ def generate_qr(
 @router.post("/qr/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/qr/file/<filename>
 def generate_qr_from_file(
     filename: str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """
     Genera un código QR a partir de un archivo existente en el servidor.
     El archivo debe estar en la carpeta de archivos subidos.
     """
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
 
     file_path = os.path.join(settings.UPLOAD_FOLDER, filename)
     if not os.path.exists(file_path):
@@ -162,18 +158,16 @@ def generate_qr_from_file(
 @router.get("/qr/{filename}", status_code=status.HTTP_200_OK) # /api/v1/qr/<filename>
 def view_qr(
     filename: str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """
     Devuelve los datos de un código QR específico.
     Si el usuario es admin, puede ver cualquier QR. De lo contrario, solo los suyos.
     """
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo-id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede ver cualquier QR
         qr_record = db.query(QRCode).filter_by(filename=filename).first()
@@ -214,18 +208,16 @@ def view_qr(
 @router.get("/download/qr/{filename}", response_class=FileResponse) # /api/v1/download/qr/<filename>
 def download_qr(
     filename: str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """
     Descarga un código QR específico.
     Si el usuario es admin, puede descargar cualquier QR. De lo contrario, solo los suyos.
     """
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede descargar cualquier QR
         qr_record = db.query(QRCode).filter_by(filename=filename).first()
@@ -260,18 +252,16 @@ def view_qr_image(filename: str):
 # Ruta para listar los códigos QR generados
 @router.get("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
 def list_qrs(
-    userInfo: dict = Depends(auth_user([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """
     Lista todos los códigos QR generados por el usuario autenticado.
     Si el usuario es admin, lista todos los códigos QR.
     """
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN not in user_roles:
         # Si el usuario es admin, listar todos los códigos QR
         qr_records = db.query(QRCode).filter_by(created_by=user_id).all()
@@ -299,18 +289,16 @@ def list_qrs(
 @router.delete("/qr/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/qr/<filename>
 def delete_qr(
     filename: str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """
     Elimina un código QR específico.
     Si el usuario es admin, puede eliminar cualquier QR. De lo contrario, solo los suyos.
     """
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede eliminar cualquier QR
         qr_entry = db.query(QRCode).filter_by(filename=filename).first()
@@ -342,7 +330,7 @@ def delete_qr(
 # Ruta para eliminar todos los códigos QR
 @router.delete("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
 def delete_all_qrs(
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """
@@ -350,11 +338,10 @@ def delete_all_qrs(
     Si el usuario es admin, elimina todos los códigos QR.
     """
     # Verificar si el usuario está autenticado
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
+    # Verificar si el usuario tiene el rol de admin
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede eliminar cualquier QR
         qr_records = db.query(QRCode).all()

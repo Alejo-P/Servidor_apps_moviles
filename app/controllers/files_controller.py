@@ -31,13 +31,10 @@ def get_unique_filename(filename):
 @router.post("/upload", status_code=status.HTTP_201_CREATED) # /api/v1/upload
 def upload_file(
     file: UploadFileSchema,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Sube un archivo al servidor."""  
-    if userInfo["id"] is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
-    
     # Verificar si se envió un archivo
     if not file:
         raise HTTPException(status_code=400, detail="No se envió ningún archivo")
@@ -73,7 +70,7 @@ def upload_file(
         filepath=filepath,
         file_size=file.size,
         file_type=file.filetype if file.filetype else "application/octet-stream",
-        uploaded_by=userInfo["id"],
+        uploaded_by=userInfo.id,
     )
     
     # Guardar el registro en la base de datos
@@ -91,13 +88,10 @@ def upload_file(
 @router.post("/upload-formdata", status_code=status.HTTP_201_CREATED) # /api/v1/upload-formdata
 def upload_form(
     file: UploadFile = File(...),
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    """Sube un archivo al servidor."""  
-    if userInfo["id"] is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")  
-    
+    """Sube un archivo al servidor."""      
     # Verificar si se envió un archivo
     contents = file.file.read()
     file.file.close()
@@ -133,7 +127,7 @@ def upload_form(
         filepath=filepath,
         file_size=len(contents),
         file_type=file.content_type if file.content_type else "application/octet-stream",
-        uploaded_by=userInfo["id"],
+        uploaded_by=userInfo.id,
     )
     
     # Guardar el registro en la base de datos
@@ -151,19 +145,12 @@ def upload_form(
 @router.get("/file/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/file/<filename>
 def get_file(
     filename: str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Devuelve los detalles de un archivo cargado."""
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
-    
-    # Obtener los claims del JWT
-    user_roles = userInfo["roles"]
-    if not user_roles:
-        raise HTTPException(status_code=401, detail="Usuario sin roles asignados")
-    
+    user_id = userInfo.id
+    user_roles = [role.name for role in userInfo.roles]
     # Verificar si el archivo existe en la base de datos
     if ROLE_ADMIN not in user_roles:
         # Si el usuario no es admin, filtrar por el ID del usuario
@@ -211,7 +198,7 @@ def get_file(
 @router.get("/download/file/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/download/<filename>
 def download_file(
     filename: str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER]))
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER]))
 ):
     # Ruta completa del archivo
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
@@ -227,7 +214,7 @@ def download_file(
 @router.get("/view/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/file/<filename>
 def view_file(
     filename: str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
@@ -244,15 +231,13 @@ def view_file(
 # Ruta para listar los archivos subidos
 @router.get("/files", status_code=status.HTTP_200_OK) # /api/v1/files
 def list_files(
-    userInfo: dict = Depends(auth_user([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """Devuelve una lista de archivos subidos."""
-    user_id = userInfo["id"]
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN not in user_roles:
         # Si el usuario no es admin, filtrar por el ID del usuario
         files_records = db.query(FileModel).filter_by(uploaded_by=user_id).all()
@@ -279,15 +264,13 @@ def list_files(
 @router.delete("/delete/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/delete/file/<filename>
 def delete_file(
     filename:str,
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Elimina un archivo del servidor."""
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN not in user_roles:
         # Si el usuario no es admin, filtrar por el ID del usuario
         file_record = db.query(FileModel).filter_by(filename=filename, uploaded_by=user_id).first()
@@ -321,15 +304,14 @@ def delete_file(
 # Ruta para eliminar todos los archivos
 @router.delete("/delete/all", status_code=status.HTTP_200_OK) # /api/v1/delete/all
 def delete_all_files(
-    userInfo: dict = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
     """Elimina todos los archivos del servidor."""
-    user_id = userInfo["id"]
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+    user_id = userInfo.id
     
-    user_roles = userInfo["roles"]
+    user_roles = [role.name for role in userInfo.roles]
+    # Verificar si el usuario es admin o no
     if ROLE_ADMIN not in user_roles:
         files_records = db.query(FileModel).filter_by(uploaded_by=user_id).all()
     else:

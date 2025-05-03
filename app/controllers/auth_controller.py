@@ -12,7 +12,6 @@ from app.models.roles_model import Role
 from app.models.users_model import User
 from app.models.avatarImages_model import AvatarImage
 from app.middlewares.auth import auth_user
-from app.middlewares.auth_user_db import auth_user_db
 from app.config.constants import *
 from app.config.settings import settings
 from app.schemas.Upload_avatar_schema import AvatarUploadForm
@@ -55,11 +54,17 @@ def login(
     if not user or not user.check_password(data.password):
         raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
     
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="El usuario está inactivo")
+    
     # Obtener los roles del usuario y almacenarlas en el token
     roles = [role.name for role in user.roles]
-    print("Roles -> ",roles)
-    access_token = Authorize.create_access_token(subject=str(user.id), user_claims={"roles": roles})
-    refresh_token = Authorize.create_refresh_token(subject=str(user.id), user_claims={"roles": roles})
+    if not roles:
+        raise HTTPException(status_code=403, detail="El usuario no tiene roles asignados")
+    
+    access_token = Authorize.create_access_token(subject=str(user.id))
+    # Crear el token de refresco y almacenarlo como cookie
+    refresh_token = Authorize.create_refresh_token(subject=str(user.id))
 
     Authorize.set_access_cookies(access_token)
     Authorize.set_refresh_cookies(refresh_token)
@@ -79,7 +84,7 @@ def refresh_token(Authorize: AuthJWT = Depends()):
         user_claims = Authorize.get_raw_jwt()
         roles = user_claims.get("roles", [])
         # Crear el token de acceso con los roles del usuario y entregarlo como cookie
-        new_access_token = Authorize.create_access_token(subject=current_user, user_claims={"roles": roles})
+        new_access_token = Authorize.create_access_token(subject=current_user)
         Authorize.set_access_cookies(new_access_token)
         return {"access_token": new_access_token}
     except RevokedTokenError:
@@ -108,7 +113,7 @@ def refresh_token(Authorize: AuthJWT = Depends()):
 
 @router.post("/logout", status_code=status.HTTP_200_OK) # /api/v1/logout
 def logout(
-    userInfo: dict = Depends(auth_user([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
     Authorize: AuthJWT = Depends()
 ):
     """Cierra la sesión del usuario."""
@@ -119,39 +124,39 @@ def logout(
 
 @router.get("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
 def profile(
-    user: User = Depends(auth_user_db([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
 ):
     """Devuelve los datos del perfil del usuario autenticado."""
-    return user.to_dict()
+    return userInfo.to_dict()
 
 @router.put("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
 def update_profile(
     data: UpdateProfileSchema,
-    user: User = Depends(auth_user_db([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """Actualiza los datos del perfil del usuario autenticado."""
-    if db.query(User).filter(User.email == data.email, User.id != user.id).first():
+    if db.query(User).filter(User.email == data.email, User.id != userInfo.id).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     
-    user.name = data.name
-    user.email = data.email
+    userInfo.name = data.name
+    userInfo.email = data.email
     db.commit()
-    db.refresh(user)
+    db.refresh(userInfo)
     
     return {
         "msg": "Perfil actualizado exitosamente",
-        "user": user.to_dict()
+        "user": userInfo.to_dict()
     }
     
 @router.put("/profile/update_password", status_code=status.HTTP_200_OK) # /api/v1/profile/update_password   
 def change_password(
     data: UpdatePasswordSchema,
-    user: User = Depends(auth_user_db([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
-    """Cambia la contraseña del usuario autenticado."""
-    if not user.check_password(data.current_password):
+    """Cambia la contraseña del usuario autenticado."""    
+    if not userInfo.check_password(data.current_password):
         raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
     
     # Verificar que la nueva contraseña no sea igual a la actual
@@ -168,9 +173,9 @@ def change_password(
     if data.new_password != data.confirm_password:
         raise HTTPException(status_code=400, detail="Las contraseñas no coinciden")
     
-    user.password = data.new_password
+    userInfo.password = data.new_password
     db.commit()
-    db.refresh(user)
+    db.refresh(userInfo)
     
     return {"msg": "Contraseña cambiada exitosamente"}
 
@@ -178,14 +183,14 @@ def change_password(
 async def upload_avatar(
     form_data: AvatarUploadForm = Depends(AvatarUploadForm.as_form),
     file: UploadFile = File(...),
-    userInfo: dict = Depends(auth_user([ROLE_ALL])),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
     """Sube una imagen de perfil para el usuario autenticado con validaciones."""
     if not file:
         raise HTTPException(status_code=400, detail="No se ha subido ningún archivo")
-
-    user_id = userInfo.get("id")
+    
+    user_id = userInfo.id
     if not user_id:
         raise HTTPException(status_code=401, detail="Usuario no autenticado")
 
@@ -194,8 +199,7 @@ async def upload_avatar(
     except ValueError:
         raise HTTPException(status_code=400, detail="ID de usuario inválido")
 
-    user_roles = userInfo.get("roles", [])
-
+    user_roles = [roles.name for roles in userInfo.roles]
     if ROLE_ADMIN in user_roles:
         user = db.get(User, requested_user_id)
     else:
