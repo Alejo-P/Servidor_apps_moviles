@@ -19,7 +19,13 @@ def get_all_profiles(
     """Devuelve todos los perfiles de usuario."""
     try:
         users = db.query(User).all()
-        return [user.to_dict() for user in users]
+        users_dicts = [user.to_dict() for user in users]
+
+        # Separar al usuario autenticado
+        auth_user_dict = next((u for u in users_dicts if u["id"] == userInfo.id), None)
+        other_users = [u for u in users_dicts if u["id"] != userInfo.id]
+
+        return [auth_user_dict] + other_users if auth_user_dict else users_dicts
     except (JWTDecodeError, MissingTokenError) as e:
         raise HTTPException(status_code=401, detail="Token inválido o faltante")
 
