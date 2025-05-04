@@ -26,6 +26,9 @@ def auth_user(required_roles: list[str]):
             
             if not user.is_active:
                 raise HTTPException(status_code=403, detail="Usuario inactivo")
+            
+            if not user.is_verified:
+                raise HTTPException(status_code=403, detail="Usuario no verificado")
 
             user_roles = [role.name for role in user.roles]
             if ROLE_ALL in required_roles:

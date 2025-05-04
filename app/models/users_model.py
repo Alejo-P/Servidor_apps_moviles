@@ -16,6 +16,7 @@ class User(Base):
     email = Column(String(100), unique=True, nullable=False)
     avatar_id = Column(Integer, ForeignKey("avatar_images.id"), nullable=True)
     is_active = Column(Boolean, default=True)
+    is_verified = Column(Boolean, default=False)
 
     # roles -> Lista de roles del usuario 
     roles = relationship("Role", secondary=user_roles, backref="users")
@@ -36,6 +37,7 @@ class User(Base):
             "name": self.name,
             "email": self.email,
             "is_active": self.is_active,
+            "is_verified": self.is_verified,
             "avatar": self.avatar.to_dict() if self.avatar else None,
             "roles": [role.to_dict()["name"] for role in self.roles]
         }

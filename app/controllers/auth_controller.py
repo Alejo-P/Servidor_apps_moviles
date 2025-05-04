@@ -57,6 +57,9 @@ def login(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="El usuario está inactivo")
     
+    if not user.is_verified:
+        raise HTTPException(status_code=403, detail="El usuario no está verificado")
+    
     # Obtener los roles del usuario y almacenarlas en el token
     roles = [role.name for role in user.roles]
     if not roles:
@@ -81,8 +84,6 @@ def refresh_token(Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_refresh_token_required()
         current_user = Authorize.get_jwt_subject()
-        user_claims = Authorize.get_raw_jwt()
-        roles = user_claims.get("roles", [])
         # Crear el token de acceso con los roles del usuario y entregarlo como cookie
         new_access_token = Authorize.create_access_token(subject=current_user)
         Authorize.set_access_cookies(new_access_token)
@@ -113,7 +114,6 @@ def refresh_token(Authorize: AuthJWT = Depends()):
 
 @router.post("/logout", status_code=status.HTTP_200_OK) # /api/v1/logout
 def logout(
-    userInfo: User = Depends(auth_user([ROLE_ALL])),
     Authorize: AuthJWT = Depends()
 ):
     """Cierra la sesión del usuario."""

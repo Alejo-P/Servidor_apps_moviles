@@ -72,15 +72,15 @@ def activate_user_profile(
 @router.post("/user/deactivate/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/deactivate/<user_id>
 def delete_user(
     user_id: int,
-    user_info: dict = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Desactivar el perfil del usuario."""
-    user_roles = user_info.get("roles", [])
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
         user = db.get(User, user_id)
     else:
-        user = db.get(User, user_info.get("id"))
+        user = db.get(User, userInfo.id)
         if user.id != user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para eliminar el perfil de otro usuario")
         
@@ -94,15 +94,15 @@ def delete_user(
 @router.put("/user/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/<user_id>
 def update_user_profile(
     user_id: int,
-    user_info: dict = Depends(auth_user([ROLE_ADMIN])),
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Actualizar el perfil del usuario."""
-    user_roles = user_info.get("roles", [])
+    user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
         user = db.get(User, user_id)
     else:
-        user = db.get(User, user_info.get("id"))
+        user = db.get(User, userInfo.id)
         if user.id != user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para actualizar el perfil de otro usuario")
         

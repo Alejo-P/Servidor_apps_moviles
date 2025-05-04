@@ -56,7 +56,7 @@ def generate_qr(
         qr_path = os.path.join(settings.QR_FOLDER, filename)
         
         if os.path.exists(qr_path):
-            raise HTTPException(status_code=400, detail="QR para ese texto ya fue generado")
+            raise HTTPException(status_code=400, detail="El QR ya fue generado")
         
         # Generar código QR
         qr = QRCodeGen(
@@ -91,7 +91,13 @@ def generate_qr(
             "msg": "Código QR generado exitosamente",
             "filename": filename
         }
-    except:
+    except Exception as e:
+        print(f"Error al generar el código QR: {e}")
+        # Volver a lanzar la excepción si es una excepción de FastAPI
+        if isinstance(e, HTTPException):
+            raise e
+        
+        # Manejo de errores
         raise HTTPException(status_code=500, detail="Error al generar el código QR")
     finally:
         if icon:
