@@ -182,33 +182,40 @@ def view_qr(
 
     if not qr_record or not os.path.exists(qr_record.filepath):
         raise HTTPException(status_code=404, detail="QR no encontrado")
-
-    user = db.query(User).filter_by(id=qr_record.created_by).first()
     
-    data = {
-        "filename": qr_record.filename,
-        "text": qr_record.text,
-        "created_by": user.to_dict() if user else "Desconocido",
-        "created_at": qr_record.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-        "filepath": qr_record.filepath,
-        "url": f"{settings.BASE_URL + settings.API_V1_STR}/view/qr/{qr_record.filename}"
-    }
+    created_by = qr_record.created_by
+    
+    qr_data = qr_record.to_dict()
+    if created_by:
+        user_record = db.query(User).get(created_by)
+        qr_data["created_by"] = {
+            "id": user_record.id,
+            "name": user_record.name,
+            "roles": [role.name for role in user_record.roles],
+            "is_active": user_record.is_active,
+        } if user_record else "Desconocido"
     
     # Si el QR tiene un archivo adjunto, incluirlo en la respuesta
     if qr_record.file_attach:
         file_record = db.query(FileModel).filter_by(id=qr_record.file_attach).first()
         if file_record:
-            data["attached_file"] = {
+            qr_data["attached_file"] = {
                 "filename": file_record.filename,
                 "url": f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{file_record.filename}"
             }
         else:
-            data["attached_file"] = None
+            qr_data["attached_file"] = None
     else:
-        data["attached_file"] = None
+        qr_data["attached_file"] = None
+        
+    qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/view/qr/{qr_record.filename}"
+    qr_data["file_type"] = "qr_code"
     
     # Servir la URL de acceso al archivo
-    return data
+    return {
+        "msg": "Código QR encontrado",
+        "qr": qr_data,
+    }
 
 # Ruta para descargar un código QR
 @router.get("/download/qr/{filename}", response_class=FileResponse) # /api/v1/download/qr/<filename>

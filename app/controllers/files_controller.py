@@ -177,7 +177,8 @@ def get_file(
         file_data["uploaded_by"] = {
             "id": user_record.id,
             "name": user_record.name,
-            "roles": [role.name for role in user_record.roles]
+            "roles": [role.name for role in user_record.roles],
+            "is_active": user_record.is_active
         } if user_record else "Desconocido"
     
     # Verificar si el archivo tiene un QR asociado
