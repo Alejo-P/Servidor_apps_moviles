@@ -29,6 +29,7 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
       - CLOUDINARY_URL=${CLOUDINARY_URL}
       - URL_FRONTEND=${URL_FRONTEND}
+      - TIMEZONE=${TIMEZONE}
 
   mysql-server:
     image: mysql:8.0

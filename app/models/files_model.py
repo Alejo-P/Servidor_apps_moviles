@@ -1,4 +1,5 @@
 from app.config.database import Base
+from app.config.settings import settings
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from datetime import datetime
 from sqlalchemy.orm import validates
@@ -12,7 +13,7 @@ class File(Base):
     filepath = Column(String(255), nullable=False)
     file_size = Column(Integer, nullable=False)
     file_type = Column(String(50), nullable=False)
-    uploaded_at = Column(DateTime, default=datetime.now)
+    uploaded_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     qr_code = Column(Integer, ForeignKey("qrcodes.id"), nullable=True)
     
@@ -34,7 +35,7 @@ class File(Base):
             "filepath": self.filepath,
             "file_size": self.file_size,
             "file_type": self.file_type,
-            "uploaded_at": self.uploaded_at,
+            "uploaded_at": self.uploaded_at.strftime("%Y-%m-%d %H:%M:%S"),
             "uploaded_by": self.uploaded_by,
             "qr_code": self.qr_code
         }

@@ -1,7 +1,6 @@
 from app.config.database import Base
 from app.models.userRoles_model import user_roles
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import validates
 from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash

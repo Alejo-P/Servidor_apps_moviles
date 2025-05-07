@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from datetime import datetime
 from app.config.database import Base
+from app.config.settings import settings
 
 class QRCode(Base):
     """Modelo de códigos QR."""
@@ -11,7 +12,7 @@ class QRCode(Base):
     file_attach = Column(Integer, ForeignKey("files.id"), nullable=True)  # ID del archivo adjunto
     text = Column(String(500), nullable=False)
     filepath = Column(String(255), nullable=False)  # Ruta del archivo QR
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     def __init__(self, filename, file_attach, text, filepath, created_by):
@@ -30,6 +31,6 @@ class QRCode(Base):
             "filename": self.filename,
             "text": self.text,
             "filepath": self.filepath,
-            "created_at": self.created_at,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "created_by": self.created_by
         }

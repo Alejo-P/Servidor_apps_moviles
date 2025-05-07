@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.config.database import Base
+from app.config.settings import settings
 
 class AvatarImage(Base):
     __tablename__ = "avatar_images"
@@ -13,7 +14,7 @@ class AvatarImage(Base):
     format = Column(String, nullable=False)
     width = Column(Integer)
     height = Column(Integer)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
 
     users = relationship("User", back_populates="avatar")
     
@@ -37,5 +38,5 @@ class AvatarImage(Base):
             "format": self.format,
             "width": self.width,
             "height": self.height,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
         }

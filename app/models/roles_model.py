@@ -1,6 +1,6 @@
 from app.config.database import Base
-from sqlalchemy import Column, Integer, String, DateTime    
-from datetime import datetime
+from app.config.settings import settings
+from sqlalchemy import Column, Integer, String, DateTime
 
 class Role(Base):
     """Modelo de roles."""
@@ -9,7 +9,7 @@ class Role(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(50), unique=True, nullable=False)
     description = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
     
     def __init__(self, name, description=None):
         self.name = name

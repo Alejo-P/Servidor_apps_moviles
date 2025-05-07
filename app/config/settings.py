@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
-import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import ClassVar
+from functools import cached_property
 from pydantic import BaseSettings
 from dotenv import load_dotenv
 
@@ -10,6 +12,22 @@ load_dotenv()
 
 class Settings(BaseSettings):
     """Configuración de la aplicación."""
+
+    @property
+    def LOGS_DIR(self) -> str:
+        tz = ZoneInfo(self.TIMEZONE)
+        # Crear el directorio de logs si no existe
+        os.makedirs(os.path.join(self.SERVER_DIR, 'logs'), exist_ok=True)
+        os.makedirs(os.path.join(self.SERVER_DIR, 'logs', str(datetime.now(tz).year)), exist_ok=True)
+        now = datetime.now(tz)
+        return os.path.join(self.SERVER_DIR, 'logs', str(now.year), f"{now.month:02}", f"{now.day:02}")
+    
+    @property
+    def CURRENT_TIME(self) -> datetime:
+        tz = ZoneInfo(self.TIMEZONE)
+        now = datetime.now(tz)
+        return now
+    
     BASE_URL: ClassVar[str] = os.getenv("BASE_URL", "http://localhost:5000")
     API_V1_STR: str = "/api/v1"  # Prefijo de la API
     URL_FRONTEND: str = os.getenv("URL_FRONTEND", "http://localhost:5173")  # URL del frontend
@@ -39,6 +57,7 @@ class Settings(BaseSettings):
     HOST: str = "127.0.0.1"
     MAX_FILE_SIZE_MB: int = 2
     ALLOWED_MIME_TYPES: list = ["image/jpeg", "image/png", "image/webp"]
+    TIMEZONE: str = os.getenv("TIMEZONE", "UTC")  # Zona horaria por defecto
     
     # Configuración de Cloudinary
     CLOUDINARY_CLOUD_NAME: str = os.getenv("CLOUDINARY_CLOUD_NAME", "")
@@ -54,7 +73,6 @@ class Settings(BaseSettings):
     LOG_BACKUP_COUNT: int = 5  # Número de archivos de respaldo
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")  # Nivel de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    LOGS_DIR: str = os.path.join(SERVER_DIR, 'logs', time.strftime("%Y-%m-%d"))  # Carpeta de logs con la fecha actual
     
     class Config:
         env_file = ".env"
