@@ -2,6 +2,7 @@
 from fastapi import Depends, HTTPException
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import MissingTokenError, JWTDecodeError
+from jwt.exceptions import InvalidSignatureError, ExpiredSignatureError
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db

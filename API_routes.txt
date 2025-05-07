@@ -26,6 +26,6 @@ qrController.generate_qr            POST     /api/v1/qr
 qrController.generate_qr_from_file  POST     /api/v1/qr/file/<filename>      
 qrController.list_qrs               GET      /api/v1/qrs                     
 qrController.view_qr                GET      /api/v1/qr/<filename>           
-qrController.view_qr_image          GET      /api/v1/view/qr/<filename>      
+qrController.view_qr_image          GET      /api/v1/qr/view/<filename>      
 qrview.qr_form                      GET      /views/qr                       
 static                              GET      /static/<path:filename>         

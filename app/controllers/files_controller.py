@@ -78,10 +78,20 @@ def upload_file(
     db.commit()
     db.refresh(file_record)
     
+    # Obtener los datos de archivo para devolverlos
+    file_data = file_record.to_dict()
+    file_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{file_record.filename}"
+    file_data["uploaded_by"] = {
+        "id": userInfo.id,
+        "name": userInfo.name,
+        "roles": [role.name for role in userInfo.roles],
+        "is_active": userInfo.is_active
+    }
+    file_data["qr_code"] = None
+    
     return {
         "msg": "Archivo cargado exitosamente",
-        "filename": filename,
-        "file_id": file_record.id
+        "file": file_data
     }
 
 # Ruta para subir archivos (sin base64 y con multipart/form-data)
@@ -135,10 +145,20 @@ def upload_form(
     db.commit()
     db.refresh(file_record)
     
+    # Obtener los datos de archivo para devolverlos
+    file_data = file_record.to_dict()
+    file_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{file_record.filename}"
+    file_data["uploaded_by"] = {
+        "id": userInfo.id,
+        "name": userInfo.name,
+        "roles": [role.name for role in userInfo.roles],
+        "is_active": userInfo.is_active
+    }
+    file_data["qr_code"] = None
+    
     return {
         "msg": "Archivo cargado exitosamente",
-        "filename": filename,
-        "file_id": file_record.id
+        "file": file_data
     }
 
 # Ruta para obtener un archivo cargado
@@ -187,7 +207,7 @@ def get_file(
         file_data["qr_code"] = qr_record.filename if qr_record else None
 
     # En lugar de url_for:
-    file_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/view/file/{file_record.filename}"
+    file_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{file_record.filename}"
 
     # Servir la URL de acceso al archivo
     return {
@@ -209,10 +229,14 @@ def download_file(
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
 
     # Enviar el archivo con los encabezados correctos
-    return FileResponse(file_path, media_type="application/octet-stream", filename=filename)
+    return FileResponse(
+        file_path,
+        media_type="application/octet-stream",
+        filename=filename
+    )
 
 # Ruta para visualizar un archivo cargado
-@router.get("/view/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/file/<filename>
+@router.get("/files/view/{filename}", status_code=status.HTTP_200_OK) # /api/v1/files/view/<filename>
 def view_file(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),

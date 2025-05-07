@@ -86,10 +86,22 @@ def generate_qr(
         db.add(qr_entry)
         db.commit()
         db.refresh(qr_entry)
+        
+        # Recopilar información del QR
+        qr_data = qr_entry.to_dict()
+        qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{filename}"
+        qr_data["file_type"] = "qr_code"
+        qr_data["created_by"] = {
+            "id": user_id,
+            "name": userInfo.name,
+            "roles": [role.name for role in userInfo.roles],
+            "is_active": userInfo.is_active
+        }
+        qr_data["attached_file"] = None  # No hay archivo adjunto
 
         return {
             "msg": "Código QR generado exitosamente",
-            "filename": filename
+            "qr": qr_data
         }
     except Exception as e:
         print(f"Error al generar el código QR: {e}")
@@ -147,15 +159,30 @@ def generate_qr_from_file(
         )
         db.add(qr_entry)
         db.commit()
-
-        file_record = db.query(FileModel).filter_by(filename=filename).first()
-        if file_record:
-            file_record.qr_code = qr_entry.id
-            db.commit()
+        db.refresh(qr_entry)
+        
+        file_record.qr_code = qr_entry.id  # Asociar el QR al archivo
+        db.commit()
+        db.refresh(file_record)
+        
+        # Recopilar información del QR
+        qr_data = qr_entry.to_dict()
+        qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{filename}"
+        qr_data["file_type"] = "qr_code"
+        qr_data["created_by"] = {
+            "id": user_id,
+            "name": userInfo.name,
+            "roles": [role.name for role in userInfo.roles],
+            "is_active": userInfo.is_active
+        }
+        qr_data["attached_file"] = {
+            "filename": file_record.filename,
+            "url": f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{file_record.filename}"
+        }
 
         return {
             "msg": "Código QR generado exitosamente",
-            "filename": f"{filename}.png"
+            "qr": qr_data
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el código QR: {str(e)}")
@@ -208,7 +235,7 @@ def view_qr(
     else:
         qr_data["attached_file"] = None
         
-    qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/view/qr/{qr_record.filename}"
+    qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{qr_record.filename}"
     qr_data["file_type"] = "qr_code"
     
     # Servir la URL de acceso al archivo
@@ -218,7 +245,7 @@ def view_qr(
     }
 
 # Ruta para descargar un código QR
-@router.get("/download/qr/{filename}", response_class=FileResponse) # /api/v1/download/qr/<filename>
+@router.get("/download/qr/{filename}", status_code=status.HTTP_200_OK) # /api/v1/download/qr/<filename>
 def download_qr(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
@@ -249,7 +276,7 @@ def download_qr(
     )
 
 # Ruta para visualizar un código QR
-@router.get("/view/qr/{filename}", response_class=FileResponse) # /api/v1/view/qr/<filename>
+@router.get("/qr/view/{filename}", response_class=FileResponse) # /api/v1/qr/view/<filename>
 def view_qr_image(filename: str):
     file_path = os.path.join(settings.QR_FOLDER, filename)
     if not os.path.exists(file_path):

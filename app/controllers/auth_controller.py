@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import RevokedTokenError
+from fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, JWTDecodeError
 from sqlalchemy.orm import Session
 import cloudinary.uploader
 from PIL import Image
@@ -117,7 +117,11 @@ def logout(
     Authorize: AuthJWT = Depends()
 ):
     """Cierra la sesión del usuario."""
-    Authorize.jwt_required()
+    try:
+        Authorize.jwt_required()
+    except JWTDecodeError:
+        pass  # O un log si querés
+    
     Authorize.unset_jwt_cookies()
     
     return {"msg": "Sesión cerrada exitosamente"}
