@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from datetime import datetime
 from app.config.database import Base
 from app.config.settings import settings
 
@@ -29,8 +28,6 @@ class QRCode(Base):
         return {
             "id": self.id,
             "filename": self.filename,
-            "text": self.text,
-            "filepath": self.filepath,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "created_by": self.created_by
         }

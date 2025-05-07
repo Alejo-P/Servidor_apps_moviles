@@ -89,8 +89,6 @@ def generate_qr(
         
         # Recopilar información del QR
         qr_data = qr_entry.to_dict()
-        qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{filename}"
-        qr_data["file_type"] = "qr_code"
         qr_data["created_by"] = {
             "id": user_id,
             "name": userInfo.name,
@@ -98,6 +96,8 @@ def generate_qr(
             "is_active": userInfo.is_active
         }
         qr_data["attached_file"] = None  # No hay archivo adjunto
+        qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{filename}"
+        qr_data["file_type"] = "qr_code"
 
         return {
             "msg": "Código QR generado exitosamente",
@@ -167,8 +167,6 @@ def generate_qr_from_file(
         
         # Recopilar información del QR
         qr_data = qr_entry.to_dict()
-        qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{filename}"
-        qr_data["file_type"] = "qr_code"
         qr_data["created_by"] = {
             "id": user_id,
             "name": userInfo.name,
@@ -179,6 +177,8 @@ def generate_qr_from_file(
             "filename": file_record.filename,
             "url": f"{settings.BASE_URL + settings.API_V1_STR}/files/view/{file_record.filename}"
         }
+        qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{qr_entry.filename}"
+        qr_data["file_type"] = "qr_code"
 
         return {
             "msg": "Código QR generado exitosamente",

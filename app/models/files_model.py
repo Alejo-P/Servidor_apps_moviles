@@ -1,7 +1,6 @@
 from app.config.database import Base
 from app.config.settings import settings
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from datetime import datetime
 from sqlalchemy.orm import validates
 
 class File(Base):
@@ -32,7 +31,6 @@ class File(Base):
         return {
             "id": self.id,
             "filename": self.filename,
-            "filepath": self.filepath,
             "file_size": self.file_size,
             "file_type": self.file_type,
             "uploaded_at": self.uploaded_at.strftime("%Y-%m-%d %H:%M:%S"),
