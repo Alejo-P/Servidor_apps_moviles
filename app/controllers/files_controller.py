@@ -313,8 +313,8 @@ def delete_file(
     if file_record.qr_code:
         qr_record = db.query(QRCode).get(file_record.qr_code)
         if qr_record:
-            if os.path.exists(qr_record.filename):
-                os.remove(qr_record.filename)
+            if os.path.exists(qr_record.filepath):
+                os.remove(qr_record.filepath)
             db.delete(qr_record)
             db.commit()
 
@@ -353,8 +353,8 @@ def delete_all_files(
         if archivo.qr_code:
             qr_record = db.query(QRCode).get(archivo.qr_code)
             if qr_record:
-                if os.path.exists(qr_record.filename):
-                    os.remove(qr_record.filename)
+                if os.path.exists(qr_record.filepath):
+                    os.remove(qr_record.filepath)
                 db.delete(qr_record)
                 db.commit()
 

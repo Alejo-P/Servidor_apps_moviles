@@ -8,6 +8,9 @@ from app.models.users_model import User
 from app.middlewares.auth import auth_user
 from app.config.constants import *
 from app.schemas.role_user_schema import RoleUserSchema
+from app.schemas.role_register_schema import RoleRegisterSchema
+from app.models.userRoles_model import user_roles
+from app.config.settings import settings
 
 router = APIRouter()
 
@@ -113,6 +116,110 @@ def update_user_profile(
     db.refresh(user)
     
     return {"msg": "Perfil actualizado exitosamente"}
+
+
+@router.post("/create_role", status_code=status.HTTP_201_CREATED) # /api/v1/create_role
+def create_role(
+    data: RoleRegisterSchema,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Crea un nuevo rol."""
+    try:
+        role = Role(
+            name=data.role_name,
+            permissions=data.permissions,
+            description=data.description
+        )
+        
+        db.add(role)
+        db.commit()
+        db.refresh(role)
+        
+        return {"msg": "Rol creado exitosamente", "role": role.to_dict()}
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    
+    
+@router.get("/roles", status_code=status.HTTP_200_OK) # /api/v1/roles
+def get_all_roles(
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Devuelve todos los roles."""
+    try:
+        roles = db.query(Role).all()
+        roles_dicts = [role.to_dict() for role in roles]
+        
+        return roles_dicts
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    
+    
+@router.get("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
+def get_role(
+    role_id: int,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Devuelve los datos de un rol específico."""
+    try:
+        role = db.query(Role).get(role_id)
+        if not role:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
+        
+        return role.to_dict()
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    
+
+@router.put("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
+def update_role(
+    role_id: int,
+    data: RoleRegisterSchema,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Actualizar un rol."""
+    try:
+        role = db.query(Role).get(role_id)
+        if not role:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
+        
+        role.name = data.role_name
+        role.permissions = data.permissions
+        role.description = data.description
+        
+        db.commit()
+        db.refresh(role)
+        
+        return {"msg": "Rol actualizado exitosamente", "role": role.to_dict()}
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    
+
+@router.delete("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
+def delete_role(
+    role_id: int,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Eliminar un rol."""
+    try:
+        role = db.query(Role).get(role_id)
+        if not role:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
+        
+        # Verificar si el rol está asignado a algún usuario
+        if role.users:
+            raise HTTPException(status_code=400, detail="No se puede eliminar un rol asignado a usuarios")
+        
+        db.delete(role)
+        db.commit()
+        
+        return {"msg": "Rol eliminado exitosamente"}
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
 
  
 @router.post("/add_role", status_code=status.HTTP_200_OK) # /api/v1/add_role

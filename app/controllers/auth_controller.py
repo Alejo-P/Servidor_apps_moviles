@@ -14,7 +14,7 @@ from app.models.avatarImages_model import AvatarImage
 from app.middlewares.auth import auth_user
 from app.config.constants import *
 from app.config.settings import settings
-from app.schemas.Upload_avatar_schema import AvatarUploadForm
+from app.schemas.upload_avatar_schema import AvatarUploadForm
 from app.schemas.register_schema import RegisterSchema
 from app.schemas.login_schema import LoginSchema
 from app.schemas.update_profile_schema import UpdatePasswordSchema, UpdateProfileSchema

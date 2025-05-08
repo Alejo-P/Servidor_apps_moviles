@@ -7,5 +7,3 @@ user_roles = Table(
     Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
     Column("role_id", Integer, ForeignKey("roles.id"), primary_key=True)
 )
-
-# TODO: Definir un rol principal para cada usuario, por ejemplo, "Usuario" o "Admin".
