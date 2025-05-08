@@ -1,6 +1,5 @@
 /env
 .env
-/mysql
 
 /__pycache__/
 /**/__pycache__/

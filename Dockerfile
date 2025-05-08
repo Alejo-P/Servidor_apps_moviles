@@ -1,5 +1,5 @@
 # Usar una versión específica de Python para evitar problemas de compatibilidad
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Establecer el directorio de trabajo dentro del contenedor
 WORKDIR /app

@@ -1,0 +1,27 @@
+{
+    "name": "Servidor Python + MySQL",
+    "dockerComposeFile": ["../docker-compose.yml"],
+    "service": "servidor-python",
+    "workspaceFolder": "/app",
+    "shutdownAction": "stopCompose",
+    "customizations": {
+        "vscode": {
+        "extensions": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "esbenp.prettier-vscode"
+        ],
+        "settings": {
+            "python.defaultInterpreterPath": "/usr/local/bin/python",
+            "editor.formatOnSave": true
+        }
+        }
+    },
+    "mounts": [
+        "source=DocTools,target=/root/DocTools,type=volume",
+        "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached"
+    ],
+    "remoteEnv": {
+        "PYTHONUNBUFFERED": "1"
+    }
+}
