@@ -4,6 +4,9 @@ FROM python:3.13-slim
 # Establecer el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
+# Instalar Git 🧠
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
 # Copiar solo los archivos necesarios primero (para optimizar la caché de Docker)
 COPY requirements.txt .
 
