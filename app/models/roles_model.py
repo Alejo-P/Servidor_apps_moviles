@@ -1,5 +1,6 @@
 from app.config.database import Base
 from app.config.settings import settings
+from app.config.constants import PERMISSIONS
 from sqlalchemy import Column, Integer, String, DateTime, JSON
 from sqlalchemy.orm import validates, relationship
 
@@ -28,6 +29,7 @@ class Role(Base):
         return {
             "id": self.id,
             "name": self.name,
+            "permissions": self.permissions,
             "description": self.description,
             "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S")
@@ -49,11 +51,16 @@ class Role(Base):
         
         if not all(isinstance(permission, str) for permission in permissions):
             raise ValueError("Todos los permisos deben ser cadenas de texto.")
-        
-        allowed_permissions = ["create", "read", "update", "delete"]  # Lista de permisos permitidos
-        if not all(permission in allowed_permissions for permission in permissions):
-            raise ValueError(f"Permisos no válidos. Deben ser uno de: {', '.join(allowed_permissions)}")
-        
+
+        # Construir set de permisos válidos: {file:upload, qr:create_from_text, ...}
+        allowed_permissions = {
+            f"{resource}:{action}" for resource, actions in PERMISSIONS.items() for action in actions
+        }
+
+        invalid_permissions = [p for p in permissions if p not in allowed_permissions]
+        if invalid_permissions:
+            raise ValueError(f"Permisos no válidos: {', '.join(invalid_permissions)}")
+
         return permissions
     
     @validates("description")

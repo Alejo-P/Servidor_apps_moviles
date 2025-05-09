@@ -188,12 +188,49 @@ def update_role(
         
         role.name = data.role_name
         role.permissions = data.permissions
-        role.description = data.description
+        if data.description:
+            role.description = data.description
+        role.updated_at = settings.CURRENT_TIME
         
         db.commit()
         db.refresh(role)
         
         return {"msg": "Rol actualizado exitosamente", "role": role.to_dict()}
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/role/permissions", status_code=status.HTTP_200_OK) # /api/v1/role/permissions
+def get_role_permissions(
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Devuelve todos los permisos disponibles."""
+    try:
+        permissions = {
+            resource: actions for resource, actions in PERMISSIONS.items()
+        }
+        
+        return permissions
+    except (JWTDecodeError, MissingTokenError) as e:
+        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    
+    
+@router.get("/role/permissions/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/permissions/<role_id>
+def get_role_permissions_by_id(
+    role_id: int,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Devuelve los permisos de un rol específico."""
+    try:
+        role = db.query(Role).get(role_id)
+        if not role:
+            raise HTTPException(status_code=404, detail="Rol no encontrado")
+        
+        return {"name":role.name,"permissions": role.permissions}
     except (JWTDecodeError, MissingTokenError) as e:
         raise HTTPException(status_code=401, detail="Token inválido o faltante")
     
