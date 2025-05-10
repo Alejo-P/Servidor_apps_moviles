@@ -1,22 +1,26 @@
 # app/middlewares/auth_user.py
-from fastapi import Depends, HTTPException
-from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import MissingTokenError, JWTDecodeError
-from jwt.exceptions import InvalidSignatureError, ExpiredSignatureError
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
+from jwt import ExpiredSignatureError, InvalidSignatureError, DecodeError
 
 from app.config.database import get_db
+from app.config.settings import settings
 from app.models.users_model import User
+from app.utils.jwt_handler import verify_token
 from app.config.constants import ROLE_ALL
 
 def auth_user(required_roles: list[str]):
     def wrapper(
-        Authorize: AuthJWT = Depends(),
+        request: Request,
         db: Session = Depends(get_db)
     ):
         try:
-            Authorize.jwt_required()
-            user_id = Authorize.get_jwt_subject()
+            token = request.cookies.get("access_token")
+            if not token:
+                raise HTTPException(status_code=401, detail="Token faltante")
+
+            payload = verify_token(token)
+            user_id = payload.get("sub")
 
             if not user_id:
                 raise HTTPException(status_code=401, detail="Usuario inválido")
@@ -24,14 +28,15 @@ def auth_user(required_roles: list[str]):
             user = db.get(User, int(user_id))
             if not user:
                 raise HTTPException(status_code=404, detail="Usuario no encontrado")
-            
+
             if not user.is_active:
                 raise HTTPException(status_code=403, detail="Usuario inactivo")
-            
+
             if not user.is_verified:
                 raise HTTPException(status_code=403, detail="Usuario no verificado")
 
             user_roles = [role.name for role in user.roles]
+
             if ROLE_ALL in required_roles:
                 return user
 
@@ -39,14 +44,12 @@ def auth_user(required_roles: list[str]):
                 raise HTTPException(status_code=403, detail="Permisos insuficientes")
 
             return user
-        
-        except HTTPException as e:
-            raise e  # Re-lanza tal cual
-        except MissingTokenError:
-            raise HTTPException(status_code=401, detail="Token faltante")
-        except JWTDecodeError:
-            raise HTTPException(status_code=401, detail="Token inválido o expirado")
+
+        except ExpiredSignatureError:
+            raise HTTPException(status_code=401, detail="Token expirado")
+        except (InvalidSignatureError, DecodeError):
+            raise HTTPException(status_code=401, detail="Token inválido")
         except Exception as e:
-            raise HTTPException(status_code=401, detail=e.message if hasattr(e, 'message') else str(e))
-    
+            raise HTTPException(status_code=401, detail=str(e))
+
     return wrapper

@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
-from fastapi_jwt_auth import AuthJWT
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Response
 from fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, JWTDecodeError
 from sqlalchemy.orm import Session
 import cloudinary.uploader
@@ -8,12 +7,15 @@ import io
 import hashlib
 
 from app.config.database import get_db
+from app.config.mailer import send_email_background
 from app.models.roles_model import Role
 from app.models.users_model import User
 from app.models.avatarImages_model import AvatarImage
 from app.middlewares.auth import auth_user
 from app.config.constants import *
 from app.config.settings import settings
+from app.utils.jwt_handler import create_access_token, create_refresh_token
+from app.utils.parse import parse_date
 from app.schemas.upload_avatar_schema import AvatarUploadForm
 from app.schemas.register_schema import RegisterSchema
 from app.schemas.login_schema import LoginSchema
@@ -46,8 +48,8 @@ def register(
 @router.post("/login", status_code=status.HTTP_200_OK)  # /api/v1/login
 def login(
     data: LoginSchema,
-    db: Session = Depends(get_db),
-    Authorize: AuthJWT = Depends()
+    response: Response,
+    db: Session = Depends(get_db)
 ):
     """Inicia sesión y devuelve un token de acceso y un token de refresco."""
     user = db.query(User).filter_by(email=data.email).first()
@@ -65,12 +67,27 @@ def login(
     if not roles:
         raise HTTPException(status_code=403, detail="El usuario no tiene roles asignados")
     
-    access_token = Authorize.create_access_token(subject=str(user.id))
-    # Crear el token de refresco y almacenarlo como cookie
-    refresh_token = Authorize.create_refresh_token(subject=str(user.id))
+    access_token = create_access_token(subject=str(user.id))
+    refresh_token = create_refresh_token(subject=str(user.id))
 
-    Authorize.set_access_cookies(access_token)
-    Authorize.set_refresh_cookies(refresh_token)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        max_age=int(parse_date(settings.JWT_ACCESS_TOKEN_EXPIRES).total_seconds()),
+        secure=True,
+        samesite="Lax",
+        path="/"
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        max_age=int(parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES).total_seconds()),
+        secure=True,
+        samesite="Lax",
+        path="/"
+    )
     
     return {
         "access_token": access_token,
@@ -119,7 +136,7 @@ def logout(
     """Cierra la sesión del usuario."""
     try:
         Authorize.jwt_required()
-    except JWTDecodeError:
+    except (JWTDecodeError, MissingTokenError):
         pass  # O un log si querés
     
     Authorize.unset_jwt_cookies()

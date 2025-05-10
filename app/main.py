@@ -12,7 +12,6 @@ from app.controllers import files_controller, qr_controller, auth_controller, ad
 from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
 import app.services.cloudinary_config # noqa: F401 - Necesario para configurar Cloudinary
-from app.auth import jwt # noqa: F401 - Inicializa JWT automáticamente
 
 from dotenv import load_dotenv
 

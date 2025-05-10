@@ -3,8 +3,7 @@ from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from typing import ClassVar
-from functools import cached_property
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env
@@ -74,8 +73,17 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")  # Nivel de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
+    # Configuracion de FastMail
+    MAIL_USERNAME: str = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD: str = os.getenv('MAIL_PASSWORD')
+    MAIL_FROM: str = os.getenv('MAIL_FROM')
+    MAIL_PORT: int = int(os.getenv('MAIL_PORT'))
+    MAIL_SERVER: str = os.getenv('MAIL_SERVER')
+    MAIL_FROM_NAME: str = os.getenv('MAIL_FROM_NAME')
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+        extra = "allow"  # Permitir variables no definidas en el modelo
 
 settings = Settings()

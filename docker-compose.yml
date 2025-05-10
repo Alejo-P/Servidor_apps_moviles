@@ -30,6 +30,12 @@ services:
       - CLOUDINARY_URL=${CLOUDINARY_URL}
       - URL_FRONTEND=${URL_FRONTEND}
       - TIMEZONE=${TIMEZONE}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
 
   mysql-server:
     image: mysql:8.0
