@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi_jwt_auth.exceptions import MissingTokenError, JWTDecodeError
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
@@ -20,17 +19,14 @@ def get_all_profiles(
     db: Session = Depends(get_db)
 ):
     """Devuelve todos los perfiles de usuario."""
-    try:
-        users = db.query(User).all()
-        users_dicts = [user.to_dict() for user in users]
+    users = db.query(User).all()
+    users_dicts = [user.to_dict() for user in users]
 
-        # Separar al usuario autenticado
-        auth_user_dict = next((u for u in users_dicts if u["id"] == userInfo.id), None)
-        other_users = [u for u in users_dicts if u["id"] != userInfo.id]
+    # Separar al usuario autenticado
+    auth_user_dict = next((u for u in users_dicts if u["id"] == userInfo.id), None)
+    other_users = [u for u in users_dicts if u["id"] != userInfo.id]
 
-        return [auth_user_dict] + other_users if auth_user_dict else users_dicts
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    return [auth_user_dict] + other_users if auth_user_dict else users_dicts
 
 
 @router.get("/user/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/<user_id>
@@ -40,14 +36,11 @@ def get_user_profile(
     db: Session = Depends(get_db)
 ):
     """Devuelve los datos del perfil de un usuario específico."""
-    try:
-        user = db.query(User).get(user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
-        return user.to_dict()
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    return user.to_dict()
 
 
 @router.post("/user/activate/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/activate/<user_id>
@@ -125,20 +118,17 @@ def create_role(
     db: Session = Depends(get_db)
 ):
     """Crea un nuevo rol."""
-    try:
-        role = Role(
-            name=data.role_name,
-            permissions=data.permissions,
-            description=data.description
-        )
-        
-        db.add(role)
-        db.commit()
-        db.refresh(role)
-        
-        return {"msg": "Rol creado exitosamente", "role": role.to_dict()}
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    role = Role(
+        name=data.role_name,
+        permissions=data.permissions,
+        description=data.description
+    )
+    
+    db.add(role)
+    db.commit()
+    db.refresh(role)
+    
+    return {"msg": "Rol creado exitosamente", "role": role.to_dict()}
     
     
 @router.get("/roles", status_code=status.HTTP_200_OK) # /api/v1/roles
@@ -147,13 +137,10 @@ def get_all_roles(
     db: Session = Depends(get_db)
 ):
     """Devuelve todos los roles."""
-    try:
-        roles = db.query(Role).all()
-        roles_dicts = [role.to_dict() for role in roles]
-        
-        return roles_dicts
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    roles = db.query(Role).all()
+    roles_dicts = [role.to_dict() for role in roles]
+    
+    return roles_dicts
     
     
 @router.get("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
@@ -163,14 +150,11 @@ def get_role(
     db: Session = Depends(get_db)
 ):
     """Devuelve los datos de un rol específico."""
-    try:
-        role = db.query(Role).get(role_id)
-        if not role:
-            raise HTTPException(status_code=404, detail="Rol no encontrado")
-        
-        return role.to_dict()
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    role = db.query(Role).get(role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    
+    return role.to_dict()
     
 
 @router.put("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
@@ -181,59 +165,21 @@ def update_role(
     db: Session = Depends(get_db)
 ):
     """Actualizar un rol."""
-    try:
-        role = db.query(Role).get(role_id)
-        if not role:
-            raise HTTPException(status_code=404, detail="Rol no encontrado")
-        
-        role.name = data.role_name
-        role.permissions = data.permissions
-        if data.description:
-            role.description = data.description
-        role.updated_at = settings.CURRENT_TIME
-        
-        db.commit()
-        db.refresh(role)
-        
-        return {"msg": "Rol actualizado exitosamente", "role": role.to_dict()}
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    role = db.query(Role).get(role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    
+    role.name = data.role_name
+    role.permissions = data.permissions
+    if data.description:
+        role.description = data.description
+    role.updated_at = settings.CURRENT_TIME
+    
+    db.commit()
+    db.refresh(role)
+    
+    return {"msg": "Rol actualizado exitosamente", "role": role.to_dict()}
 
-
-@router.get("/role/permissions", status_code=status.HTTP_200_OK) # /api/v1/role/permissions
-def get_role_permissions(
-    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
-    db: Session = Depends(get_db)
-):
-    """Devuelve todos los permisos disponibles."""
-    try:
-        permissions = {
-            resource: actions for resource, actions in PERMISSIONS.items()
-        }
-        
-        return permissions
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
-    
-    
-@router.get("/role/permissions/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/permissions/<role_id>
-def get_role_permissions_by_id(
-    role_id: int,
-    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
-    db: Session = Depends(get_db)
-):
-    """Devuelve los permisos de un rol específico."""
-    try:
-        role = db.query(Role).get(role_id)
-        if not role:
-            raise HTTPException(status_code=404, detail="Rol no encontrado")
-        
-        return {"name":role.name,"permissions": role.permissions}
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
-    
 
 @router.delete("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
 def delete_role(
@@ -242,21 +188,18 @@ def delete_role(
     db: Session = Depends(get_db)
 ):
     """Eliminar un rol."""
-    try:
-        role = db.query(Role).get(role_id)
-        if not role:
-            raise HTTPException(status_code=404, detail="Rol no encontrado")
-        
-        # Verificar si el rol está asignado a algún usuario
-        if role.users:
-            raise HTTPException(status_code=400, detail="No se puede eliminar un rol asignado a usuarios")
-        
-        db.delete(role)
-        db.commit()
-        
-        return {"msg": "Rol eliminado exitosamente"}
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    role = db.query(Role).get(role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+
+    # Verificar si el rol está asignado a algún usuario
+    if role.users:
+        raise HTTPException(status_code=400, detail="No se puede eliminar un rol asignado a usuarios")
+
+    db.delete(role)
+    db.commit()
+
+    return {"msg": "Rol eliminado exitosamente"}
 
  
 @router.post("/add_role", status_code=status.HTTP_200_OK) # /api/v1/add_role
@@ -266,26 +209,23 @@ def add_role_to_user(
     db: Session = Depends(get_db)
 ):
     """Agrega un rol a un usuario."""
-    try:
-        user = db.query(User).get(data.user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
-        role = db.query(Role).filter_by(name=data.role_name).first()
-        if not role:
-            raise HTTPException(status_code=404, detail="Rol no encontrado")
-        
-        # Verificar si el rol ya está asignado al usuario
-        if role in user.roles:
-            raise HTTPException(status_code=400, detail="El rol ya está asignado al usuario")
-        
-        user.roles.append(role)
-        db.commit()
-        db.refresh(user)
-        
-        return {"msg": "Rol agregado exitosamente"}
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    user = db.query(User).get(data.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    role = db.query(Role).filter_by(name=data.role_name).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    
+    # Verificar si el rol ya está asignado al usuario
+    if role in user.roles:
+        raise HTTPException(status_code=400, detail="El rol ya está asignado al usuario")
+    
+    user.roles.append(role)
+    db.commit()
+    db.refresh(user)
+    
+    return {"msg": "Rol agregado exitosamente"}
     
     
 @router.delete("/remove_role", status_code=status.HTTP_200_OK) # /api/v1/remove_role
@@ -295,27 +235,24 @@ def remove_role_from_user(
     db: Session = Depends(get_db)
 ):
     """Elimina un rol de un usuario."""
-    try:
-        user = db.query(User).get(data.user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
-        role = db.query(Role).filter_by(name=data.role_name).first()
-        if not role:
-            raise HTTPException(status_code=404, detail="Rol no encontrado")
-        
-        # Verificar si el rol ya ha sido removido del usuario
-        if role not in user.roles:
-            raise HTTPException(status_code=400, detail="El rol no está asignado al usuario")
-        
-        # Verificar si el usuario tiene al menos un rol asignado
-        if len(user.roles) <= 1:
-            raise HTTPException(status_code=400, detail="El usuario debe tener al menos un rol asignado")
-        
-        user.roles.remove(role)
-        db.commit()
-        db.refresh(user)
-        
-        return {"msg": "Rol eliminado exitosamente"}
-    except (JWTDecodeError, MissingTokenError) as e:
-        raise HTTPException(status_code=401, detail="Token inválido o faltante")
+    user = db.query(User).get(data.user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    role = db.query(Role).filter_by(name=data.role_name).first()
+    if not role:
+        raise HTTPException(status_code=404, detail="Rol no encontrado")
+    
+    # Verificar si el rol ya ha sido removido del usuario
+    if role not in user.roles:
+        raise HTTPException(status_code=400, detail="El rol no está asignado al usuario")
+    
+    # Verificar si el usuario tiene al menos un rol asignado
+    if len(user.roles) <= 1:
+        raise HTTPException(status_code=400, detail="El usuario debe tener al menos un rol asignado")
+    
+    user.roles.remove(role)
+    db.commit()
+    db.refresh(user)
+    
+    return {"msg": "Rol eliminado exitosamente"}

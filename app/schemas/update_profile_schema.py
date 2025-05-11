@@ -12,8 +12,8 @@ class UpdatePasswordSchema(BaseModel):
     confirm_password: str
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "new_password": "new_password",
                 "confirm_password": "new_password"

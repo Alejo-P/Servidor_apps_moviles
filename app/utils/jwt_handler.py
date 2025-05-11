@@ -1,5 +1,5 @@
 # app/utils/jwt_handler.py
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Optional
 import jwt
 
@@ -8,7 +8,7 @@ from app.utils.parse import parse_date
 
 def create_access_token(subject: str) -> str:
     expires_delta = timedelta(seconds=int(parse_date(settings.JWT_ACCESS_TOKEN_EXPIRES).total_seconds()))
-    expire = datetime.utcnow() + expires_delta
+    expire = settings.CURRENT_TIME + expires_delta
     payload = {
         "sub": subject,
         "exp": expire,
@@ -17,8 +17,8 @@ def create_access_token(subject: str) -> str:
     return jwt.encode(payload, settings.AUTHJWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 def create_refresh_token(subject: str) -> str:
-    expires_delta = timedelta(seconds=int(settings.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()))
-    expire = datetime.utcnow() + expires_delta
+    expires_delta = timedelta(seconds=int(parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES).total_seconds()))
+    expire = settings.CURRENT_TIME + expires_delta
     payload = {
         "sub": subject,
         "exp": expire,

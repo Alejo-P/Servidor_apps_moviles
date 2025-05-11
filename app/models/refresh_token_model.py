@@ -1,11 +1,11 @@
-import os
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
+from sqlalchemy.orm import relationship, validates
+from dotenv import load_dotenv
+from datetime import datetime, timezone
+
 from app.config.database import Base
 from app.config.settings import settings
 from app.utils.parse import parse_date 
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
-from datetime import datetime, timezone
-from dotenv import load_dotenv
-
 
 load_dotenv()
 
@@ -19,16 +19,27 @@ class RefreshToken(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     token = Column(String(500), nullable=False, unique=True)
+    created_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
     expires_at = Column(DateTime, nullable=False)  # Nueva columna para expiración
     is_active = Column(Boolean, default=True)
+    
+    user = relationship("User", back_populates="refresh_tokens")
 
-    def __init__(self, user_id, token, expires_in=30):
+    def __init__(self, user_id, token, expires_in=refresh_expires_in):
         """ 
         expires_in: número de días antes de que el token expire (por defecto 30 días)
         """
         self.user_id = user_id
         self.token = token
-        self.expires_at = datetime.now(timezone.utc) + refresh_expires_in
+        self.expires_at = settings.CURRENT_TIME + expires_in
+    
+    def __str__(self):
+        return f"RefreshToken(id={self.id}, user_id={self.user_id}, token={self.token}, expires_at={self.expires_at}, is_active={self.is_active})"
+    
+    def __eq__(self, other):
+        if not isinstance(other, RefreshToken):
+            return False
+        return self.id == other.id and self.user_id == other.user_id and self.token == other.token
         
     def to_dict(self):
         return {
@@ -45,3 +56,8 @@ class RefreshToken(Base):
     # Método para verificar si el token ha expirado
     def is_expired(self):
         return datetime.now(timezone.utc) > self.expires_at
+    
+    # Método para invalidar el token
+    def invalidate(self):
+        self.is_active = False
+        self.expires_at = datetime.now(timezone.utc)  # Establecer la fecha de expiración a ahora

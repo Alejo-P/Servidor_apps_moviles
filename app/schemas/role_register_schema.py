@@ -9,7 +9,7 @@ class RoleRegisterSchema(BaseModel):
     updated_at: Optional[str] = Field(None, description="Timestamp when the role was last updated")
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "role_name": "Admin",
                 "permissions": ["create", "read", "update", "delete"],
@@ -18,4 +18,4 @@ class RoleRegisterSchema(BaseModel):
                 "updated_at": "2023-10-01T12:00:00Z"
             }
         }
-        orm_mode = True
+        from_attributes = True

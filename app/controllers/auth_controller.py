@@ -1,25 +1,26 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Response
-from fastapi_jwt_auth.exceptions import RevokedTokenError, MissingTokenError, JWTDecodeError
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Response, Request
 from sqlalchemy.orm import Session
 import cloudinary.uploader
 from PIL import Image
 import io
 import hashlib
+import jwt
 
+from app.config.constants import *
 from app.config.database import get_db
 from app.config.mailer import send_email_background
+from app.config.settings import settings
+from app.middlewares.auth import auth_user
+from app.models.avatarImages_model import AvatarImage
+from app.models.refresh_token_model import RefreshToken
 from app.models.roles_model import Role
 from app.models.users_model import User
-from app.models.avatarImages_model import AvatarImage
-from app.middlewares.auth import auth_user
-from app.config.constants import *
-from app.config.settings import settings
-from app.utils.jwt_handler import create_access_token, create_refresh_token
-from app.utils.parse import parse_date
-from app.schemas.upload_avatar_schema import AvatarUploadForm
-from app.schemas.register_schema import RegisterSchema
 from app.schemas.login_schema import LoginSchema
+from app.schemas.register_schema import RegisterSchema
 from app.schemas.update_profile_schema import UpdatePasswordSchema, UpdateProfileSchema
+from app.schemas.upload_avatar_schema import AvatarUploadForm
+from app.utils.jwt_handler import create_access_token, create_refresh_token, verify_token
+from app.utils.parse import parse_date
 
 # Crear el router para la autenticación
 router = APIRouter()
@@ -69,46 +70,69 @@ def login(
     
     access_token = create_access_token(subject=str(user.id))
     refresh_token = create_refresh_token(subject=str(user.id))
+    
+    # Guardar el token de refresco en la base de datos
+    refresh_token_db = RefreshToken(
+        user_id=user.id,
+        token=refresh_token,
+        expires_in=parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES)
+    )
+    db.add(refresh_token_db)
+    db.commit()
+    db.refresh(refresh_token_db)
+    # Enviar un correo de verificación de sesión
+    # send_email_background(
+    #     subject="Nueva sesión iniciada",
+    #     recipient=user.email,
+    #     template="email/verify_session.html",
+    #     context={
+    #         "user": user.name,
+    # )
 
     response.set_cookie(
-        key="access_token",
+        key="csrf_access_token",
         value=access_token,
         httponly=True,
         max_age=int(parse_date(settings.JWT_ACCESS_TOKEN_EXPIRES).total_seconds()),
         secure=True,
-        samesite="Lax",
+        samesite="lax",
         path="/"
     )
     response.set_cookie(
-        key="refresh_token",
+        key="csrf_refresh_token",
         value=refresh_token,
         httponly=True,
         max_age=int(parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES).total_seconds()),
         secure=True,
-        samesite="Lax",
+        samesite="lax",
         path="/"
     )
     
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "msg": "Inicio de sesión exitoso"
+        "msg": "Inicio de sesión exitoso",
+        "user": user.to_dict()
     }
 
-@router.post("/refresh", status_code=status.HTTP_200_OK)  # /api/v1/refresh
-def refresh_token(Authorize: AuthJWT = Depends()):
-    """Refresca el token de acceso usando el token de refresco."""
+@router.post("/refresh", status_code=status.HTTP_200_OK)
+def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
+    token = request.cookies.get("csrf_refresh_token")
     try:
-        Authorize.jwt_refresh_token_required()
-        current_user = Authorize.get_jwt_subject()
-        # Crear el token de acceso con los roles del usuario y entregarlo como cookie
-        new_access_token = Authorize.create_access_token(subject=current_user)
-        Authorize.set_access_cookies(new_access_token)
+        payload = verify_token(token)
+        user_id = int(payload.get("sub"))
+
+        db_token = db.query(RefreshToken).filter_by(token=token, user_id=user_id, is_active=True).first()
+        if not db_token:
+            raise HTTPException(status_code=401, detail="Refresh token revocado")
+
+        new_access_token = create_access_token({"sub": str(user_id)})
+        response.set_cookie("csrf_access_token", new_access_token, httponly=True)
+
         return {"access_token": new_access_token}
-    except RevokedTokenError:
-        raise HTTPException(status_code=401, detail="Refresh token revocado")
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Refresh token expirado")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido")
+
 
 # @router.get("/active_sessions", status_code=status.HTTP_200_OK)  # /api/v1/active_sessions
 # def active_sessions(
@@ -129,18 +153,24 @@ def refresh_token(Authorize: AuthJWT = Depends()):
 #         "active_sessions": [token.to_dict() for token in tokens]
 #     })
 
-@router.post("/logout", status_code=status.HTTP_200_OK) # /api/v1/logout
-def logout(
-    Authorize: AuthJWT = Depends()
-):
-    """Cierra la sesión del usuario."""
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    refresh_token = request.cookies.get("csrf_refresh_token")
+
     try:
-        Authorize.jwt_required()
-    except (JWTDecodeError, MissingTokenError):
-        pass  # O un log si querés
-    
-    Authorize.unset_jwt_cookies()
-    
+        if refresh_token:
+            payload = verify_token(refresh_token)
+            user_id = int(payload.get("sub"))
+
+            db_token = db.query(RefreshToken).filter_by(token=refresh_token, user_id=user_id).first()
+            if db_token:
+                db_token.is_active = False
+                db.commit()
+    except Exception:
+        pass  # Token inválido o ya expirado
+
+    response.delete_cookie("csrf_access_token", path="/")
+    response.delete_cookie("csrf_refresh_token", path="/")
     return {"msg": "Sesión cerrada exitosamente"}
 
 @router.get("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile

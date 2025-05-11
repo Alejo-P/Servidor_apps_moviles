@@ -1,8 +1,7 @@
 from app.config.database import Base
 from app.models.userRoles_model import user_roles
 from sqlalchemy import Column, Integer, String, ForeignKey, Boolean
-from sqlalchemy.orm import validates
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import validates, relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class User(Base):
@@ -20,6 +19,7 @@ class User(Base):
     # roles -> Lista de roles del usuario 
     roles = relationship("Role", secondary=user_roles, backref="users")
     avatar = relationship("AvatarImage", back_populates="users")
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     
     def __init__(self, name, email, password):
         self.name = name

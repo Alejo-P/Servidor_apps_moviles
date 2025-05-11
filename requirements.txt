@@ -11,7 +11,6 @@ cryptography==44.0.2
 dnspython==2.7.0
 email_validator==2.2.0
 fastapi==0.115.12
-fastapi-jwt-auth==0.5.0
 fastapi-mail==1.4.2
 greenlet==3.1.1
 h11==0.14.0
@@ -23,7 +22,7 @@ pycparser==2.22
 pydantic==2.11.4
 pydantic-settings==2.9.1
 pydantic_core==2.33.2
-PyJWT==1.7.1
+PyJWT==2.10.1
 PyMySQL==1.1.1
 python-dotenv==1.0.1
 python-multipart==0.0.20

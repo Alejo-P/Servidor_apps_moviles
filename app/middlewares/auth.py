@@ -15,7 +15,7 @@ def auth_user(required_roles: list[str]):
         db: Session = Depends(get_db)
     ):
         try:
-            token = request.cookies.get("access_token")
+            token = request.cookies.get("csrf_access_token")
             if not token:
                 raise HTTPException(status_code=401, detail="Token faltante")
 
