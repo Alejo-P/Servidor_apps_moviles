@@ -138,14 +138,14 @@ def get_all_roles(
 ):
     """Devuelve todos los roles."""
     roles = db.query(Role).all()
-    roles_dicts = [role.to_dict() for role in roles]
+    roles_dicts = [{"id": role.id, "name":role.name} for role in roles]
     
     return roles_dicts
     
     
 @router.get("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
 def get_role(
-    role_id: int,
+    role_id: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
