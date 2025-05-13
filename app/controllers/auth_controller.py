@@ -124,10 +124,20 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
         if not db_token:
             raise HTTPException(status_code=401, detail="Refresh token revocado")
 
-        new_access_token = create_access_token({"sub": str(user_id)})
-        response.set_cookie("csrf_access_token", new_access_token, httponly=True)
+        new_access_token = create_access_token(subject=str(user_id))
+        response.set_cookie(
+            key="csrf_access_token",
+            value=new_access_token,
+            httponly=True,
+            max_age=int(parse_date(settings.JWT_ACCESS_TOKEN_EXPIRES).total_seconds()),
+            secure=True,
+            samesite="lax",
+            path="/"
+        )
 
-        return {"access_token": new_access_token}
+        return {"msg": "Token de acceso renovado exitosamente"}
+    except jwt.InvalidSignatureError:
+        raise HTTPException(status_code=401, detail="Firma del token inválida")
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Refresh token expirado")
     except jwt.InvalidTokenError:

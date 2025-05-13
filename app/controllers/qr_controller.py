@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, Form, HTTPException, s
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from qrcode import QRCode as QRCodeGen, constants
+from werkzeug.utils import secure_filename
 
 from app.config.settings import settings
 from app.config.database import get_db
@@ -52,7 +53,9 @@ def generate_qr(
     
     try:
         filename = f"{form_data.name or form_data.text}.png"
-        filename = filename.replace(" ", "_")
+        filename = secure_filename(filename)  # Asegurarse de que el nombre del archivo sea seguro
+        
+        # Verificar si el archivo ya existe
         qr_path = os.path.join(settings.QR_FOLDER, filename)
         
         if os.path.exists(qr_path):
@@ -128,6 +131,9 @@ def generate_qr_from_file(
     """
     user_id = userInfo.id
 
+    filename = secure_filename(filename)  # Asegurarse de que el nombre del archivo sea seguro
+    
+    # Verificar si el archivo existe
     file_path = os.path.join(settings.UPLOAD_FOLDER, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
@@ -290,7 +296,7 @@ def view_qr_image(filename: str):
     return FileResponse(path=file_path, media_type=mime_type)
 
 # Ruta para listar los códigos QR generados
-@router.get("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
+@router.get("/qrs", status_code=status.HTTP_200_OK, name="Listar QR")  # /api/v1/qrs
 def list_qrs(
     userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)

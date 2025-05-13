@@ -1,7 +1,7 @@
 from datetime import timedelta
 import re
 
-def parse_date(value: str):
+def parse_date(value: str = "") -> timedelta:
     """Parses a duration string (e.g., '3d', '6h30m', '2d4h20m10s') into a timedelta object."""
     if not value:
         return timedelta(days=1)  # Valor por defecto: 1 día

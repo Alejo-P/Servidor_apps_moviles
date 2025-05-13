@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     LOG_BACKUP_COUNT: int = 5  # Número de archivos de respaldo
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "DEBUG")  # Nivel de logging (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    LOG_BY_HOUR: bool = True # Si se desea log por hora
     
     # Configuracion de FastMail
     MAIL_USERNAME: str = os.getenv('MAIL_USERNAME')
