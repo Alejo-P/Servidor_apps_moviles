@@ -51,6 +51,10 @@ app.include_router(qr_controller.router, prefix="/api/v1")
 app.include_router(auth_controller.router, prefix="/api/v1")
 app.include_router(admin_controller.router, prefix="/api/v1")
 
+@app.get("/", tags=["Root"])
+async def read_root():
+    return {"message": "Bienvenido a la API de DocTools. Visita /docs para la documentación."}
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = []

@@ -50,6 +50,9 @@ def auth_user(required_roles: list[str]):
         except (InvalidSignatureError, DecodeError):
             raise HTTPException(status_code=401, detail="Token inválido")
         except Exception as e:
-            raise HTTPException(status_code=401, detail=str(e))
+            if isinstance(e, HTTPException):
+                raise e
+            else:
+                raise HTTPException(status_code=401, detail=str(e))
 
     return wrapper
