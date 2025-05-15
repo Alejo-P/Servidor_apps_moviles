@@ -43,7 +43,7 @@ app.add_middleware(
 )
 
 # Configurar el middleware de logging
-app.add_middleware(RequestLoggerMiddleware)
+#app.add_middleware(RequestLoggerMiddleware)
 
 # Rutas de la API
 app.include_router(files_controller.router, prefix="/api/v1")
