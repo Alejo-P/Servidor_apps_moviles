@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config.settings import settings
 from app.controllers import files_controller, qr_controller, auth_controller, admin_controller
+from app.views import email_template
 from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
 import app.services.cloudinary_config # noqa: F401 - Necesario para configurar Cloudinary
@@ -50,6 +51,7 @@ app.include_router(files_controller.router, prefix="/api/v1")
 app.include_router(qr_controller.router, prefix="/api/v1")
 app.include_router(auth_controller.router, prefix="/api/v1")
 app.include_router(admin_controller.router, prefix="/api/v1")
+app.include_router(email_template.view, prefix="/api/v1")
 
 @app.get("/", tags=["Root"])
 async def read_root():

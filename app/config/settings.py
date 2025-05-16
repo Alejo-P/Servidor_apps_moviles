@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     UPLOAD_FOLDER: str = os.path.join(APP_DIR, 'files')
     QR_FOLDER: str = os.path.join(APP_DIR, 'qrs')
     STATIC_FOLDER: str = os.path.join(APP_DIR, 'static')
+    TEMPLATES_FOLDER: str = os.path.join(SERVER_DIR, "templates")
     
     PYTHONUNBUFFERED: int = 1  # Evita el buffering de salida
     ALLOWED_EXTENSIONS: set = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
