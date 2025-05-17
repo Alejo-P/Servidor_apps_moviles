@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: set = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
     MAX_CONTENT_LENGTH: int = 16 * 1024 * 1024  # 16 MB
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "default_secret_key")  # Clave secreta para la aplicación
     
     AUTHJWT_SECRET_KEY: str = os.getenv("AUTHJWT_SECRET_KEY")   # Clave secreta para JWT
     JWT_ACCESS_CSRF_COOKIE: bool = os.getenv("JWT_ACCESS_CSRF_COOKIE", "True") == "True"

@@ -20,6 +20,7 @@ from app.schemas.register_schema import RegisterSchema
 from app.schemas.update_profile_schema import UpdatePasswordSchema, UpdateProfileSchema
 from app.schemas.upload_avatar_schema import AvatarUploadForm
 from app.utils.jwt_handler import create_access_token, create_refresh_token, verify_token
+from app.utils.verif_token import verify_email_token, create_verification_token
 from app.utils.parse import parse_date
 
 # Crear el router para la autenticación
@@ -40,11 +41,46 @@ def register(
     
     user = User(name=data.name, email=data.email, password=data.password)
     user.roles.append(role)
+    
+    # Crear el token de verificación
+    token = create_verification_token(secret_key=settings.SECRET_KEY, email=user.email)
+    user.token = token
     db.add(user)
     db.commit()
     db.refresh(user)
     
+    # Enviar correo de verificación
+    send_email_background(
+        BackgroundTasks, 
+        subject="Verificación de cuenta",
+        email_to=user.email,
+        template_name="email/verify_email.html",
+        body={
+            "username": user.name,
+            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}&email={user.email}",
+            "year": settings.CURRENT_TIME.year
+        }
+    )
+    
     return {"msg": "Usuario registrado exitosamente"}
+
+@router.get("/verify_email", status_code=status.HTTP_200_OK)  # /api/v1/verify_email
+def verify_email(
+    token: str,
+    email: str,
+    db: Session = Depends(get_db)
+):
+    if not verify_email_token(settings.SECRET_KEY, token, email):
+        raise HTTPException(status_code=400, detail="Token inválido o expirado")
+
+    user = db.query(User).filter_by(email=email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    user.is_verified = True
+    db.commit()
+
+    return {"msg": "Correo verificado exitosamente"}
 
 @router.post("/login", status_code=status.HTTP_200_OK)  # /api/v1/login
 def login(

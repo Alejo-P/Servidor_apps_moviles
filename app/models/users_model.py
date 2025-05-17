@@ -13,6 +13,7 @@ class User(Base):
     password = Column(String(255), nullable=False)
     email = Column(String(100), unique=True, nullable=False)
     avatar_id = Column(Integer, ForeignKey("avatar_images.id"), nullable=True)
+    token = Column(String(255), nullable=True, unique=True, default=None)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
 

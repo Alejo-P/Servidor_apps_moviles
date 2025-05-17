@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.config.database import get_db
+from app.config.mailer import send_email_background
 from app.models.roles_model import Role
 from app.models.users_model import User
 from app.middlewares.auth import auth_user
 from app.config.constants import *
 from app.schemas.role_user_schema import RoleUserSchema
 from app.schemas.role_register_schema import RoleRegisterSchema
-from app.models.userRoles_model import user_roles
+from app.schemas.update_profile_schema import UpdateProfileSchema, UpdatePasswordSchema
+from app.utils.verif_token import verify_email_token, create_verification_token
 from app.config.settings import settings
 
 router = APIRouter()
@@ -90,6 +92,7 @@ def delete_user(
 @router.put("/user/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/<user_id>
 def update_user_profile(
     user_id: int,
+    data: UpdateProfileSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
@@ -102,13 +105,64 @@ def update_user_profile(
         if user.id != user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para actualizar el perfil de otro usuario")
         
-    # Aquí puedes agregar la lógica para actualizar los datos del usuario
-    # Por ejemplo, si estás usando un esquema Pydantic para validar los datos de entrada
+    # Verificar si el correo ya está en uso por otro usuario
+    existing_user = db.query(User).filter(User.email == data.email, User.id != user.id).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="El correo ya está en uso por otro usuario")
     
+    # Actualizar los datos del usuario    
+    user.name = data.name
+    user.email = data.email
     db.commit()
     db.refresh(user)
     
-    return {"msg": "Perfil actualizado exitosamente"}
+    return {
+        "msg": "Usuario actualizado exitosamente",
+        "user": user.to_dict()
+    }
+    
+
+@router.put("/user/change-password/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/change-password/<user_id>
+def update_user_password(
+    user_id: int,
+    data: UpdatePasswordSchema,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Actualizar la contraseña del usuario."""
+    user_roles = [role.name for role in userInfo.roles]
+    if ROLE_ADMIN in user_roles:
+        user = db.get(User, user_id)
+    else:
+        user = db.get(User, userInfo.id)
+        if user.id != user_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso para cambiar la contraseña de otro usuario")
+        
+    # Verificar si la contraseña actual es correcta
+    if not user.check_password(data.current_password):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+    
+    # Verificar si la nueva contraseña es igual a la actual
+    if data.new_password == data.current_password:
+        raise HTTPException(status_code=400, detail="La nueva contraseña no puede ser igual a la actual")
+    
+    # Verificar que la nueva contraseña cumpla con los requisitos
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe tener al menos 8 caracteres")
+    
+    if not any(char.isdigit() for char in data.new_password):
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe contener al menos un número")
+    
+    # Verificar si las contraseñas coinciden
+    if data.new_password != data.confirm_password:
+        raise HTTPException(status_code=400, detail="Las contraseñas no coinciden")
+    
+    # Actualizar la contraseña
+    user.password = data.new_password
+    db.commit()
+    db.refresh(user)
+    
+    return {"msg": "Contraseña actualizada exitosamente"}
 
 
 @router.post("/create_role", status_code=status.HTTP_201_CREATED) # /api/v1/create_role
@@ -256,3 +310,46 @@ def remove_role_from_user(
     db.refresh(user)
     
     return {"msg": "Rol eliminado exitosamente"}
+
+
+@router.post("/send-verification-email/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/send-verification-email/<user_id>
+def send_verification_email(
+    user_id: int,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Enviar un correo de verificación al usuario."""
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    token = user.token
+    if not token or not verify_email_token(
+        secret_key=settings.SECRET_KEY,
+        token=token,
+        email=user.email
+    ):
+        # Si el token no es válido o no existe, crear uno nuevo
+        token = create_verification_token(
+            secret_key=settings.SECRET_KEY,
+            email=user.email,
+            expires_in_minutes=60
+        )
+        user.token = token
+        db.commit()
+        db.refresh(user)
+    
+    # Envio del correo de verificación
+    send_email_background(
+        BackgroundTasks, 
+        subject="Verificación de cuenta",
+        email_to=user.email,
+        template_name="email/verify_email.html",
+        body={
+            "username": user.name,
+            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}&email={user.email}",
+            "year": settings.CURRENT_TIME.year
+        }
+    )
+    
+    return {"msg": "Correo de verificación enviado exitosamente"}
