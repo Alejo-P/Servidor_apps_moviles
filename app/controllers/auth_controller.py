@@ -134,19 +134,20 @@ def login(
     
     access_token = create_access_token(subject=str(user.id))
     refresh_token = create_refresh_token(subject=str(user.id))
+    device_info = get_device_info(request)
     
     # Guardar el token de refresco en la base de datos
     refresh_token_db = RefreshToken(
         user_id=user.id,
         token=refresh_token,
-        expires_in=parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES)
+        expires_in=parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES),
+        device_info=device_info
     )
     db.add(refresh_token_db)
     db.commit()
     db.refresh(refresh_token_db)
     
     # Enviar un correo de verificación de sesión
-    device_info = get_device_info(request)
     send_email_background(
         background_tasks,
         subject="Nueva sesión iniciada",

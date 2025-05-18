@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, JSON
 from sqlalchemy.orm import relationship, validates
 from dotenv import load_dotenv
 from datetime import datetime, timezone
+import json
 
 from app.config.database import Base
 from app.config.settings import settings
@@ -21,17 +22,19 @@ class RefreshToken(Base):
     token = Column(String(500), nullable=False, unique=True)
     created_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
     expires_at = Column(DateTime, nullable=False)  # Nueva columna para expiración
+    device_info = Column(JSON, nullable=True)  # Información del dispositivo
     is_active = Column(Boolean, default=True)
     
     user = relationship("User", back_populates="refresh_tokens")
 
-    def __init__(self, user_id, token, expires_in=refresh_expires_in):
+    def __init__(self, user_id, token, device_info, expires_in=refresh_expires_in):
         """ 
         expires_in: número de días antes de que el token expire (por defecto 30 días)
         """
         self.user_id = user_id
         self.token = token
         self.expires_at = settings.CURRENT_TIME + expires_in
+        self.device_info = json.loads(json.dumps(device_info)) # Crear esta columna en la base de datos
     
     def __str__(self):
         return f"RefreshToken(id={self.id}, user_id={self.user_id}, token={self.token}, expires_at={self.expires_at}, is_active={self.is_active})"
