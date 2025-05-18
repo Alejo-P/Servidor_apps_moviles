@@ -5,6 +5,11 @@ ROLE_USER = "Usuario"
 ROLE_DEV = "Desarrollador"
 ROLE_GUEST = "Invitado"
 
+# Definición de entornos de desarrollo
+ENV_DEVELOPMENT = "development"
+ENV_PRODUCTION = "production"
+
+# Definición de permisos
 PERMISSIONS = {
     "file": [
         "upload",

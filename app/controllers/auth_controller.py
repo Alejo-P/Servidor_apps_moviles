@@ -20,7 +20,7 @@ from app.schemas.register_schema import RegisterSchema
 from app.schemas.update_profile_schema import UpdatePasswordSchema, UpdateProfileSchema
 from app.schemas.upload_avatar_schema import AvatarUploadForm
 from app.utils.jwt_handler import create_access_token, create_refresh_token, verify_token
-from app.utils.verif_token import verify_email_token, create_verification_token
+from app.utils.verif_token import verify_secure_token, create_secure_token
 from app.utils.parse import parse_date
 
 # Crear el router para la autenticación
@@ -29,6 +29,7 @@ router = APIRouter()
 @router.post("/register", status_code=status.HTTP_201_CREATED)  # /api/v1/register
 def register(
     data: RegisterSchema,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """Registra un nuevo usuario en la base de datos."""
@@ -43,7 +44,7 @@ def register(
     user.roles.append(role)
     
     # Crear el token de verificación
-    token = create_verification_token(secret_key=settings.SECRET_KEY, email=user.email)
+    token = create_secure_token(settings.SECRET_KEY, user.email)
     user.token = token
     db.add(user)
     db.commit()
@@ -51,34 +52,58 @@ def register(
     
     # Enviar correo de verificación
     send_email_background(
-        BackgroundTasks, 
+        background_tasks,
         subject="Verificación de cuenta",
         email_to=user.email,
-        template_name="email/verify_email.html",
+        template_name="verify_email.html",
         body={
             "username": user.name,
-            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}&email={user.email}",
+            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}",
             "year": settings.CURRENT_TIME.year
         }
     )
     
     return {"msg": "Usuario registrado exitosamente"}
 
-@router.get("/verify_email", status_code=status.HTTP_200_OK)  # /api/v1/verify_email
+@router.post("/verify-email", status_code=status.HTTP_200_OK)  # /api/v1/verify-email
 def verify_email(
     token: str,
-    email: str,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
-    if not verify_email_token(settings.SECRET_KEY, token, email):
+    payload = verify_secure_token(settings.SECRET_KEY, token)
+    if not payload:
         raise HTTPException(status_code=400, detail="Token inválido o expirado")
 
-    user = db.query(User).filter_by(email=email).first()
+    user = db.query(User).filter_by(email=payload["email"]).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if not user.token or user.token != token:
+        raise HTTPException(status_code=400, detail="Token no coincide con el usuario")
+    
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="El usuario está inactivo")
+    
+    if user.is_verified:
+        raise HTTPException(status_code=400, detail="El correo ya ha sido verificado")
 
     user.is_verified = True
+    user.token = None  # Limpiar el token después de la verificación
     db.commit()
+    db.refresh(user)
+    
+    # Enviar correo de confirmación de verificación
+    send_email_background(
+        background_tasks,
+        subject="Verificación de cuenta exitosa",
+        email_to=user.email,
+        template_name="verify_email_success.html",
+        body={
+            "username": user.name,
+            "year": settings.CURRENT_TIME.year
+        }
+    )
 
     return {"msg": "Correo verificado exitosamente"}
 
@@ -86,6 +111,7 @@ def verify_email(
 def login(
     data: LoginSchema,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Inicia sesión y devuelve un token de acceso y un token de refresco."""
@@ -116,14 +142,19 @@ def login(
     db.add(refresh_token_db)
     db.commit()
     db.refresh(refresh_token_db)
+    
     # Enviar un correo de verificación de sesión
-    # send_email_background(
-    #     subject="Nueva sesión iniciada",
-    #     recipient=user.email,
-    #     template="email/verify_session.html",
-    #     context={
-    #         "user": user.name,
-    # )
+    send_email_background(
+        background_tasks,
+        subject="Nueva sesión iniciada",
+        email_to=user.email,
+        template_name="new_session.html",
+        body={
+            "username": user.name,
+            "login_time": settings.CURRENT_TIME.strftime("%Y-%m-%d %H:%M:%S"),
+            "year": settings.CURRENT_TIME.year
+        }
+    )
 
     response.set_cookie(
         key="csrf_access_token",

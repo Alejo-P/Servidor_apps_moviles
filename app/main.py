@@ -71,6 +71,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     
 @app.exception_handler(StarletteHTTPException)
 async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    print(f"HTTPException: {exc.status_code} - {exc.detail}")
+    # Manejo de excepciones personalizadas
     if exc.status_code == 404:
         return JSONResponse(
             status_code=404,

@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     BASE_URL: ClassVar[str] = os.getenv("BASE_URL", "http://localhost:5000")
     API_V1_STR: str = "/api/v1"  # Prefijo de la API
     URL_FRONTEND: str = os.getenv("URL_FRONTEND", "http://localhost:5173")  # URL del frontend
+    URL_BACKEND: str = os.getenv("URL_BACKEND", "http://localhost:5000")  # URL del backend
+    ENV: str = os.getenv("ENV", "development")  # Entorno de la aplicación (development, production, etc.)
     
     BASE_DIR: str = os.path.expanduser("~") # Directorio base (donde se crearan y guardaran los archivos)
     SERVER_DIR: Path = Path(__file__).resolve().parent.parent  # Directorio del servidor
@@ -38,6 +40,7 @@ class Settings(BaseSettings):
     QR_FOLDER: str = os.path.join(APP_DIR, 'qrs')
     STATIC_FOLDER: str = os.path.join(APP_DIR, 'static')
     TEMPLATES_FOLDER: str = os.path.join(SERVER_DIR, "templates")
+    EMAIL_TEMPLATES_FOLDER: str = os.path.join(TEMPLATES_FOLDER, "email")
     
     PYTHONUNBUFFERED: int = 1  # Evita el buffering de salida
     ALLOWED_EXTENSIONS: set = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Verifica tu cuenta</title>
+  <title>{{ subject }}</title>
   <style>
     :root {
       /* Light Mode */
@@ -88,11 +88,13 @@
 <body>
   <div class="container">
     <h1>¡Hola {{ username }}!</h1>
-    <p>Gracias por unirte a DocTools. Para activar tu cuenta, haz clic en el siguiente botón:</p>
-    <div class="btn-container">
-      <a href="{{ verify_url }}" class="button">Verificar cuenta</a>
-    </div>
-    <p>Si no fuiste tú quien solicitó esto, puedes ignorar este mensaje con total tranquilidad.</p>
+
+    {% if email_to %}
+        <p>Tu correo electrónico es: {{ email_to }}</p>
+    {% endif %}
+
+    <p>Acabas de iniciar sesion en DocTools.</p>
+    <p>El inicio de sesion se realaizo el {{ login_time }}</p>
     <div class="footer">
       © {{ year }} DocTools - Todos los derechos reservados.
     </div>

@@ -10,7 +10,7 @@ from app.config.constants import *
 from app.schemas.role_user_schema import RoleUserSchema
 from app.schemas.role_register_schema import RoleRegisterSchema
 from app.schemas.update_profile_schema import UpdateProfileSchema, UpdatePasswordSchema
-from app.utils.verif_token import verify_email_token, create_verification_token
+from app.utils.verif_token import verify_secure_token, create_secure_token
 from app.config.settings import settings
 
 router = APIRouter()
@@ -315,6 +315,7 @@ def remove_role_from_user(
 @router.post("/send-verification-email/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/send-verification-email/<user_id>
 def send_verification_email(
     user_id: int,
+    background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
@@ -324,30 +325,26 @@ def send_verification_email(
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     token = user.token
-    if not token or not verify_email_token(
-        secret_key=settings.SECRET_KEY,
-        token=token,
-        email=user.email
-    ):
+    if not token or not verify_secure_token(settings.SECRET_KEY, token):
         # Si el token no es válido o no existe, crear uno nuevo
-        token = create_verification_token(
-            secret_key=settings.SECRET_KEY,
-            email=user.email,
-            expires_in_minutes=60
-        )
+        token = create_secure_token(settings.SECRET_KEY, user.email)
         user.token = token
         db.commit()
         db.refresh(user)
     
+    # Verificar si el correo ya ha sido verificado
+    if user.is_verified and user.is_active:
+        raise HTTPException(status_code=400, detail="El correo ya ha sido verificado")
+    
     # Envio del correo de verificación
     send_email_background(
-        BackgroundTasks, 
+        background_tasks,
         subject="Verificación de cuenta",
         email_to=user.email,
-        template_name="email/verify_email.html",
+        template_name="verify_email.html",
         body={
             "username": user.name,
-            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}&email={user.email}",
+            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}",
             "year": settings.CURRENT_TIME.year
         }
     )
