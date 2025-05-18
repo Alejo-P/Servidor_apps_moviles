@@ -94,7 +94,15 @@
     {% endif %}
 
     <p>Acabas de iniciar sesion en DocTools.</p>
-    <p>El inicio de sesion se realaizo el {{ login_time }}</p>
+    <p>El inicio de sesion se realizo el {{ login_time }}</p>
+    <p><strong>Detalles del dispositivo:</strong></p>
+    <ul>
+      <li>Dispositivo: {{ device }}</li>
+      <li>Sistema Operativo: {{ os }}</li>
+      <li>Navegador: {{ browser }}</li>
+    </ul>
+
+    <p>Si no reconoces esta actividad, cambia tu contraseña de inmediato.</p>
     <div class="footer">
       © {{ year }} DocTools - Todos los derechos reservados.
     </div>

@@ -20,8 +20,9 @@ from app.schemas.register_schema import RegisterSchema
 from app.schemas.update_profile_schema import UpdatePasswordSchema, UpdateProfileSchema
 from app.schemas.upload_avatar_schema import AvatarUploadForm
 from app.utils.jwt_handler import create_access_token, create_refresh_token, verify_token
-from app.utils.verif_token import verify_secure_token, create_secure_token
 from app.utils.parse import parse_date
+from app.utils.ua_parser import get_device_info
+from app.utils.verif_token import verify_secure_token, create_secure_token
 
 # Crear el router para la autenticación
 router = APIRouter()
@@ -110,6 +111,7 @@ def verify_email(
 @router.post("/login", status_code=status.HTTP_200_OK)  # /api/v1/login
 def login(
     data: LoginSchema,
+    request: Request,
     response: Response,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
@@ -144,6 +146,7 @@ def login(
     db.refresh(refresh_token_db)
     
     # Enviar un correo de verificación de sesión
+    device_info = get_device_info(request)
     send_email_background(
         background_tasks,
         subject="Nueva sesión iniciada",
@@ -152,7 +155,11 @@ def login(
         body={
             "username": user.name,
             "login_time": settings.CURRENT_TIME.strftime("%Y-%m-%d %H:%M:%S"),
-            "year": settings.CURRENT_TIME.year
+            "year": settings.CURRENT_TIME.year,
+            "device": device_info["device"],
+            "os": device_info["os"],
+            "browser": device_info["browser"],
+            "location": "Desconocida"
         }
     )
 
