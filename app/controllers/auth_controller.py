@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, BackgroundTasks, Response, Request
 from sqlalchemy.orm import Session
+from urllib.parse import quote
 import cloudinary.uploader
 from PIL import Image
 import io
@@ -37,15 +38,15 @@ def register(
     if db.query(User).filter_by(email=data.email).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
-    role = db.query(Role).filter_by(name="Usuario").first()
+    role = db.query(Role).filter_by(name=ROLE_USER).first()
     if not role:
-        raise HTTPException(status_code=500, detail="Rol 'Usuario' no encontrado")
+        raise HTTPException(status_code=500, detail=f"Rol '{ROLE_USER}' no encontrado")
     
     user = User(name=data.name, email=data.email, password=data.password)
     user.roles.append(role)
     
     # Crear el token de verificación
-    token = create_secure_token(settings.SECRET_KEY, user.email)
+    token = create_secure_token(settings.SECRET_KEY, str(user.email))
     user.token = token
     db.add(user)
     db.commit()
@@ -55,18 +56,18 @@ def register(
     send_email_background(
         background_tasks,
         subject="Verificación de cuenta",
-        email_to=user.email,
+        email_to=str(user.email),
         template_name="verify_email.html",
         body={
             "username": user.name,
-            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}",
+            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={quote(token)}",
             "year": settings.CURRENT_TIME.year
         }
     )
     
     return {"msg": "Usuario registrado exitosamente"}
 
-@router.post("/verify-email", status_code=status.HTTP_200_OK)  # /api/v1/verify-email
+@router.post("/verify-email/{token}", status_code=status.HTTP_200_OK)  # /api/v1/verify-email/<token>
 def verify_email(
     token: str,
     background_tasks: BackgroundTasks,
@@ -80,11 +81,13 @@ def verify_email(
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
+    print(f"Token: {token}", f"User token: {user.token}")
+    
     if not user.token or user.token != token:
         raise HTTPException(status_code=400, detail="Token no coincide con el usuario")
     
     if not user.is_active:
-        raise HTTPException(status_code=403, detail="El usuario está inactivo")
+        raise HTTPException(status_code=403, detail="El usuario no está inactivo")
     
     if user.is_verified:
         raise HTTPException(status_code=400, detail="El correo ya ha sido verificado")

@@ -14,6 +14,7 @@
       --button-bg: #3b82f6;
       --button-hover: #2563eb;
       --footer: #64748b;
+      --table-header-bg: #e2e8f0;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -25,6 +26,7 @@
         --button-bg: #3b82f6;
         --button-hover: #2563eb;
         --footer: #94a3b8;
+        --table-header-bg: #475569;
       }
     }
 
@@ -51,6 +53,34 @@
       font-weight: bold;
       margin-bottom: 20px;
       color: var(--highlight);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border-bottom: 1px solid var(--footer);
+    }
+
+    th {
+      background-color: var(--table-header-bg);
+      color: white;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 14px;
+      border-radius: 10px 10px 0 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    tr:nth-child(even) {
+      background-color: var(--container-bg);
     }
 
     p {
@@ -96,11 +126,27 @@
     <p>Acabas de iniciar sesion en DocTools.</p>
     <p>El inicio de sesion se realizo el {{ login_time }}</p>
     <p><strong>Detalles del dispositivo:</strong></p>
-    <ul>
-      <li>Dispositivo: {{ device }}</li>
-      <li>Sistema Operativo: {{ os }}</li>
-      <li>Navegador: {{ browser }}</li>
-    </ul>
+
+    <table>
+      <thead>
+        <tr>
+          <th>IP</th>
+          <th>Ubicación</th>
+          <th>Dispositivo</th>
+          <th>Sistema Operativo</th>
+          <th>Navegador</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>{{ ip }}</td>
+          <td>{{ location }}</td>
+          <td>{{ device }}</td>
+          <td>{{ os }}</td>
+          <td>{{ browser }}</td>
+        </tr>
+      </tbody>
+    </table>
 
     <p>Si no reconoces esta actividad, cambia tu contraseña de inmediato.</p>
     <div class="footer">

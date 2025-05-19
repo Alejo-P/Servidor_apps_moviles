@@ -1,5 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from urllib.parse import quote
 
 from app.config.database import get_db
 from app.config.mailer import send_email_background
@@ -344,7 +345,7 @@ def send_verification_email(
         template_name="verify_email.html",
         body={
             "username": user.name,
-            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}",
+            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={quote(token)}",
             "year": settings.CURRENT_TIME.year
         }
     )

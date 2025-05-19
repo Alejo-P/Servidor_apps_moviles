@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 from datetime import timedelta
-from urllib.parse import quote
 import json
 
 from app.config.settings import settings
@@ -27,7 +26,7 @@ def create_secure_token(secret_key: str, email: str, expires_in_minutes: int = 6
     b64_signature = base64.urlsafe_b64encode(signature.digest()).decode()
 
     token = f"{b64_payload}.{b64_signature}"
-    return quote(token)  # URL encode final
+    return token
 
 
 def verify_secure_token(secret_key: str, token: str) -> dict | None:

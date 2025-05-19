@@ -7,7 +7,7 @@ import os
 from app.config.database import get_db
 from app.models.users_model import User
 from app.middlewares.auth import auth_user
-from app.utils.parse import parse_date
+from urllib.parse import quote
 from app.config.constants import *
 from app.config.settings import settings
 from app.utils.verif_token import create_secure_token, verify_secure_token
@@ -42,7 +42,7 @@ def get_email_template(
         # Si quieres pasar datos personalizados:
         context = {
             "username": userInfo.name,
-            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={token}",
+            "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={quote(token)}",
             "year": settings.CURRENT_TIME.year
         }
 

@@ -22,7 +22,7 @@ class RefreshToken(Base):
     token = Column(String(500), nullable=False, unique=True)
     created_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
     expires_at = Column(DateTime, nullable=False)  # Nueva columna para expiración
-    device_info = Column(JSON, nullable=True)  # Información del dispositivo
+    device_info = Column(JSON, nullable=False)  # Información del dispositivo
     is_active = Column(Boolean, default=True)
     
     user = relationship("User", back_populates="refresh_tokens")
