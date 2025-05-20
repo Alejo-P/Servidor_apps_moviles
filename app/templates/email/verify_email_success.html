@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{{ subject }}</title>
+  <style>
+    :root {
+      /* Light Mode */
+      --bg: #f8fafc;
+      --container-bg: #ffffff;
+      --text: #1e293b;
+      --highlight: #2563eb;
+      --button-bg: #3b82f6;
+      --button-hover: #2563eb;
+      --footer: #64748b;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1e293b;
+        --container-bg: #334155;
+        --text: #e2e8f0;
+        --highlight: #facc15;
+        --button-bg: #3b82f6;
+        --button-hover: #2563eb;
+        --footer: #94a3b8;
+      }
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background-color: var(--container-bg);
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: var(--highlight);
+    }
+
+    p {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .btn-container {
+      margin-top: 30px;
+    }
+
+    .button {
+      background-color: var(--button-bg);
+      color: white;
+      text-decoration: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      display: inline-block;
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.5);
+      transition: background-color 0.3s ease;
+    }
+
+    .button:hover {
+      background-color: var(--button-hover);
+    }
+
+    .footer {
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--footer);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>¡Hola {{ username }}!</h1>
+    <p>Tu cuenta ha sido verificada correctamente, puedes iniciar sesion</p>
+    <div class="btn-container">
+      <a href="{{ login_url }}" class="button">Iniciar Sesion</a>
+    </div>
+    <div class="footer">
+      © {{ year }} DocTools - Todos los derechos reservados.
+    </div>
+  </div>
+</body>
+</html>

@@ -91,4 +91,7 @@ def render_template(
         rendered_html = template.render(**context)
         return rendered_html
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        if isinstance(e, HTTPException):
+            raise e
+        else:
+            raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

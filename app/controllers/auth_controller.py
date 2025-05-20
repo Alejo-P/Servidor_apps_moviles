@@ -105,6 +105,7 @@ def verify_email(
         template_name="verify_email_success.html",
         body={
             "username": user.name,
+            "login_url": f"{settings.URL_FRONTEND}/#/?login=true",
             "year": settings.CURRENT_TIME.year
         }
     )
