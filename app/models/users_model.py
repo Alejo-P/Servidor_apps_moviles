@@ -40,7 +40,8 @@ class User(Base):
             "is_active": self.is_active,
             "is_verified": self.is_verified,
             "avatar": self.avatar.to_dict() if self.avatar else None,
-            "roles": [role.to_dict()["name"] for role in self.roles]
+            "roles": [role.to_dict()["name"] for role in self.roles],
+            "actions": [action.to_dict() for action in self.actions]
         }
     
     def check_password(self, password):

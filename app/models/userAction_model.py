@@ -24,3 +24,21 @@ class UserAction(Base):
         self.user_id = user_id
         self.u_action = action
         self.u_reason = reason
+        self.created_at = settings.CURRENT_TIME
+        
+    def __repr__(self):
+        return f"<UserAction {self.user_id} - {self.u_action}>"
+    
+    def __str__(self):
+        return f"UserAction(id={self.id}, user_id={self.user_id}, action={self.u_action}, reason={self.u_reason}, created_at={self.created_at})"
+    
+    def to_dict(self):
+        """Devuelve un diccionario con los datos de la acción."""
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "action": self.u_action.value,
+            "reason": self.u_reason,
+            "created_at": self.created_at
+        }
+        
