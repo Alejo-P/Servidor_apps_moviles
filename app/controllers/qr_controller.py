@@ -36,8 +36,9 @@ def add_icon_to_qr(qr_img, icon_img):
     qr_img.paste(icon_img, icon_position, mask=icon_img if icon_img.mode == "RGBA" else None)
     return qr_img
 
+
 # Ruta para generar un código QR con icono opcional
-@router.post("/qr", status_code=status.HTTP_200_OK)  # /api/v1/qr
+@router.post("/qr", status_code=status.HTTP_200_OK, tags=["QR Routes"])  # /api/v1/qr
 def generate_qr(
     form_data: QRCodeSchema = Depends(QRCodeSchema.as_form),  # <-- ahora traemos 'text' y 'name' juntos
     icon: UploadFile = File(None),
@@ -118,8 +119,9 @@ def generate_qr(
         if icon:
             icon.file.close()
 
+
 # Ruta para generar un código QR (A partir de un archivo)
-@router.post("/qr/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/qr/file/<filename>
+@router.post("/qr/file/{filename}", status_code=status.HTTP_200_OK, tags=["QR Routes"]) # /api/v1/qr/file/<filename>
 def generate_qr_from_file(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
@@ -130,7 +132,6 @@ def generate_qr_from_file(
     El archivo debe estar en la carpeta de archivos subidos.
     """
     user_id = userInfo.id
-
     filename = secure_filename(filename)  # Asegurarse de que el nombre del archivo sea seguro
     
     # Verificar si el archivo existe
@@ -193,8 +194,9 @@ def generate_qr_from_file(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al generar el código QR: {str(e)}")
 
+
 # Ruta para obtener un código QR
-@router.get("/qr/{filename}", status_code=status.HTTP_200_OK) # /api/v1/qr/<filename>
+@router.get("/qr/{filename}", status_code=status.HTTP_200_OK, tags=["QR Routes"]) # /api/v1/qr/<filename>
 def view_qr(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
@@ -205,8 +207,8 @@ def view_qr(
     Si el usuario es admin, puede ver cualquier QR. De lo contrario, solo los suyos.
     """
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
+    filename = secure_filename(filename)  # Asegurarse de que el nombre del archivo sea seguro
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede ver cualquier QR
         qr_record = db.query(QRCode).filter_by(filename=filename).first()
@@ -250,8 +252,9 @@ def view_qr(
         "qr": qr_data,
     }
 
+
 # Ruta para descargar un código QR
-@router.get("/download/qr/{filename}", status_code=status.HTTP_200_OK) # /api/v1/download/qr/<filename>
+@router.get("/download/qr/{filename}", status_code=status.HTTP_200_OK, tags=["QR Routes"]) # /api/v1/download/qr/<filename>
 def download_qr(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
@@ -262,8 +265,8 @@ def download_qr(
     Si el usuario es admin, puede descargar cualquier QR. De lo contrario, solo los suyos.
     """
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
+    filename = secure_filename(filename)  # Asegurarse de que el nombre del archivo sea seguro
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede descargar cualquier QR
         qr_record = db.query(QRCode).filter_by(filename=filename).first()
@@ -281,9 +284,16 @@ def download_qr(
         headers={"Content-Disposition": f"attachment; filename={qr_record.filename}"}
     )
 
+
 # Ruta para visualizar un código QR
-@router.get("/qr/view/{filename}", response_class=FileResponse) # /api/v1/qr/view/<filename>
+@router.get("/qr/view/{filename}", response_class=FileResponse, tags=["QR Routes"]) # /api/v1/qr/view/<filename>
 def view_qr_image(filename: str):
+    """
+    Devuelve la imagen de un código QR específico.
+    Si el usuario es admin, puede ver cualquier QR. De lo contrario, solo los suyos.
+    """
+    # Verificar si el archivo existe
+    filename = secure_filename(filename)  # Asegurarse de que el nombre del archivo sea seguro
     file_path = os.path.join(settings.QR_FOLDER, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="QR no encontrado")
@@ -295,8 +305,9 @@ def view_qr_image(filename: str):
     # Enviar el archivo para visualizarlo
     return FileResponse(path=file_path, media_type=mime_type)
 
+
 # Ruta para listar los códigos QR generados
-@router.get("/qrs", status_code=status.HTTP_200_OK, name="Listar QR")  # /api/v1/qrs
+@router.get("/qrs", status_code=status.HTTP_200_OK, name="Listar QR", tags=["QR Routes"])  # /api/v1/qrs
 def list_qrs(
     userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
@@ -306,7 +317,6 @@ def list_qrs(
     Si el usuario es admin, lista todos los códigos QR.
     """
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN not in user_roles:
         # Si el usuario es admin, listar todos los códigos QR
@@ -331,8 +341,9 @@ def list_qrs(
 
     return data
 
+
 # Ruta para eliminar un código QR
-@router.delete("/qr/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/qr/<filename>
+@router.delete("/qr/{filename}", status_code=status.HTTP_200_OK, tags=["QR Routes"])  # /api/v1/qr/<filename>
 def delete_qr(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
@@ -343,8 +354,8 @@ def delete_qr(
     Si el usuario es admin, puede eliminar cualquier QR. De lo contrario, solo los suyos.
     """
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
+    filename = secure_filename(filename)  # Asegurarse de que el nombre del archivo sea seguro
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede eliminar cualquier QR
         qr_entry = db.query(QRCode).filter_by(filename=filename).first()
@@ -373,8 +384,9 @@ def delete_qr(
         "msg": "Código QR eliminado exitosamente"
     }
 
+
 # Ruta para eliminar todos los códigos QR
-@router.delete("/qrs", status_code=status.HTTP_200_OK)  # /api/v1/qrs
+@router.delete("/qrs", status_code=status.HTTP_200_OK, tags=["QR Routes"])  # /api/v1/qrs
 def delete_all_qrs(
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
@@ -385,7 +397,6 @@ def delete_all_qrs(
     """
     # Verificar si el usuario está autenticado
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
     # Verificar si el usuario tiene el rol de admin
     if ROLE_ADMIN in user_roles:

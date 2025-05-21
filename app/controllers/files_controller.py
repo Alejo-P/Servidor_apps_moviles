@@ -27,8 +27,9 @@ def get_unique_filename(filename):
     name, ext = os.path.splitext(filename)
     return f"{name}_{uuid.uuid4().hex[:8]}{ext}"
 
+
 # Ruta para subir archivos
-@router.post("/upload", status_code=status.HTTP_201_CREATED) # /api/v1/upload
+@router.post("/upload", status_code=status.HTTP_201_CREATED, tags=["File Routes"]) # /api/v1/upload
 def upload_file(
     file: UploadFileSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
@@ -94,14 +95,15 @@ def upload_file(
         "file": file_data
     }
 
+
 # Ruta para subir archivos (sin base64 y con multipart/form-data)
-@router.post("/upload-formdata", status_code=status.HTTP_201_CREATED) # /api/v1/upload-formdata
+@router.post("/upload-formdata", status_code=status.HTTP_201_CREATED, tags=["File Routes"]) # /api/v1/upload-formdata
 def upload_form(
     file: UploadFile = File(...),
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    """Sube un archivo al servidor."""      
+    """Sube un archivo al servidor (Usado para pruebas con PostMan)."""      
     # Verificar si se envió un archivo
     contents = file.file.read()
     file.file.close()
@@ -161,16 +163,21 @@ def upload_form(
         "file": file_data
     }
 
+
 # Ruta para obtener un archivo cargado
-@router.get("/file/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/file/<filename>
+@router.get("/file/{filename}", status_code=status.HTTP_200_OK, tags=["File Routes"])  # /api/v1/file/<filename>
 def get_file(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    """Devuelve los detalles de un archivo cargado."""
+    """
+    Devuelve los detalles de un archivo cargado.
+    Si el usuario no es admin, solo puede ver sus propios archivos.
+    """
     user_id = userInfo.id
     user_roles = [role.name for role in userInfo.roles]
+    filename = secure_filename(filename) # Asegurarse de que el nombre del archivo sea seguro
     # Verificar si el archivo existe en la base de datos
     if ROLE_ADMIN not in user_roles:
         # Si el usuario no es admin, filtrar por el ID del usuario
@@ -215,13 +222,16 @@ def get_file(
         "file": file_data
     }
 
+
 # Ruta para descargar un archivo cargado
-@router.get("/download/file/{filename}", status_code=status.HTTP_200_OK)  # /api/v1/download/<filename>
+@router.get("/download/file/{filename}", status_code=status.HTTP_200_OK, tags=["File Routes"])  # /api/v1/download/<filename>
 def download_file(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER]))
 ):
+    """Descarga un archivo cargado previamente."""
     # Ruta completa del archivo
+    filename = secure_filename(filename) # Asegurarse de que el nombre del archivo sea seguro
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
     
     # Verificar si el archivo existe
@@ -235,13 +245,16 @@ def download_file(
         filename=filename
     )
 
+
 # Ruta para visualizar un archivo cargado
-@router.get("/files/view/{filename}", status_code=status.HTTP_200_OK) # /api/v1/files/view/<filename>
+@router.get("/files/view/{filename}", status_code=status.HTTP_200_OK, tags=["File Routes"]) # /api/v1/files/view/<filename>
 def view_file(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
+    """Devuelve un archivo cargado para visualizarlo."""
+    filename = secure_filename(filename) # Asegurarse de que el nombre del archivo sea seguro
     file_path = os.path.join(env.UPLOAD_FOLDER, filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="Archivo no encontrado")
@@ -253,15 +266,18 @@ def view_file(
     # Enviar el archivo para visualizarlo
     return FileResponse(path=file_path, media_type=mime_type)
 
+
 # Ruta para listar los archivos subidos
-@router.get("/files", status_code=status.HTTP_200_OK) # /api/v1/files
+@router.get("/files", status_code=status.HTTP_200_OK, tags=["File Routes"]) # /api/v1/files
 def list_files(
     userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
 ):
-    """Devuelve una lista de archivos subidos."""
+    """
+    Devuelve una lista de archivos subidos.
+    Si el usuario no es admin, solo puede ver sus propios archivos.
+    """
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN not in user_roles:
         # Si el usuario no es admin, filtrar por el ID del usuario
@@ -285,17 +301,21 @@ def list_files(
     
     return data
 
+
 # Ruta para eliminar un archivo
-@router.delete("/delete/file/{filename}", status_code=status.HTTP_200_OK) # /api/v1/delete/file/<filename>
+@router.delete("/delete/file/{filename}", status_code=status.HTTP_200_OK, tags=["File Routes"]) # /api/v1/delete/file/<filename>
 def delete_file(
     filename:str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    """Elimina un archivo del servidor."""
+    """
+    Elimina un archivo del servidor.
+    Si el usuario no es admin, solo puede eliminar sus propios archivos.
+    """
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
+    filename = secure_filename(filename) # Asegurarse de que el nombre del archivo sea seguro
     if ROLE_ADMIN not in user_roles:
         # Si el usuario no es admin, filtrar por el ID del usuario
         file_record = db.query(FileModel).filter_by(filename=filename, uploaded_by=user_id).first()
@@ -326,15 +346,18 @@ def delete_file(
         "filename": filename
     }
 
+
 # Ruta para eliminar todos los archivos
-@router.delete("/delete/all", status_code=status.HTTP_200_OK) # /api/v1/delete/all
+@router.delete("/delete/all", status_code=status.HTTP_200_OK, tags=["File Routes"]) # /api/v1/delete/all
 def delete_all_files(
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
-    """Elimina todos los archivos del servidor."""
+    """
+    Elimina todos los archivos del servidor.
+    Si el usuario no es admin, solo puede eliminar sus propios archivos.
+    """
     user_id = userInfo.id
-    
     user_roles = [role.name for role in userInfo.roles]
     # Verificar si el usuario es admin o no
     if ROLE_ADMIN not in user_roles:

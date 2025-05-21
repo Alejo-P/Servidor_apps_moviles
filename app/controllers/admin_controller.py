@@ -6,8 +6,10 @@ from app.config.database import get_db
 from app.config.mailer import send_email_background
 from app.models.roles_model import Role
 from app.models.users_model import User
+from app.models.userAction_model import ActionType, UserAction
 from app.middlewares.auth import auth_user
 from app.config.constants import *
+from app.schemas.modify_user_schema import ModifyUserSchema
 from app.schemas.role_user_schema import RoleUserSchema
 from app.schemas.role_register_schema import RoleRegisterSchema
 from app.schemas.update_profile_schema import UpdateProfileSchema, UpdatePasswordSchema
@@ -16,7 +18,7 @@ from app.config.settings import settings
 
 router = APIRouter()
 
-@router.get("/users", status_code=status.HTTP_200_OK) # /api/v1/users
+@router.get("/users", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/users
 def get_all_profiles(
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
@@ -32,7 +34,7 @@ def get_all_profiles(
     return [auth_user_dict] + other_users if auth_user_dict else users_dicts
 
 
-@router.get("/user/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/<user_id>
+@router.get("/user/{user_id}", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/<user_id>
 def get_user_profile(
     user_id: int,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -46,51 +48,115 @@ def get_user_profile(
     return user.to_dict()
 
 
-@router.post("/user/activate/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/activate/<user_id>
+@router.post("/user/activate", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/activate
 def activate_user_profile(
-    user_id: int,
+    data: ModifyUserSchema,
+    background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Activar el perfil del usuario."""
     user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
-        user = db.get(User, user_id)
+        user = db.get(User, data.user_id)
     else:
         user = db.get(User, userInfo.id)
-        if userInfo.id != user_id:
+        if userInfo.id != data.user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para activar el perfil de otro usuario")
+         
+    # Verificar si el usuario existe
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Verificar si el usuario ya está activo
+    if user.is_active:
+        raise HTTPException(status_code=400, detail="El perfil ya está activo")
         
     user.is_active = True
     db.commit()
     db.refresh(user)
+    
+    accion = UserAction(
+        user_id=user.id,
+        action=ActionType.activado,
+        reason=data.reason
+    )
+    db.add(accion)
+    db.commit()
+    db.refresh(accion)
+    
+    # Enviar un correo de notificacion al usuario
+    send_email_background(
+        background_tasks,
+        subject="Activacion de cuenta",
+        email_to=user.email,
+        template_name="activate_account.html",
+        body={
+            "username": user.name,
+            "login_url": f"{settings.URL_FRONTEND}/#/?login=true",
+            "year": settings.CURRENT_TIME.year
+        }
+    )
              
     return {"msg": "Perfil activado exitosamente"}
 
 
-@router.post("/user/deactivate/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/deactivate/<user_id>
-def delete_user(
-    user_id: int,
+@router.post("/user/deactivate", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/deactivate
+def deactivate_user_profile(
+    data: ModifyUserSchema,
+    background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
 ):
     """Desactivar el perfil del usuario."""
     user_roles = [role.name for role in userInfo.roles]
     if ROLE_ADMIN in user_roles:
-        user = db.get(User, user_id)
+        user = db.get(User, data.user_id)
     else:
         user = db.get(User, userInfo.id)
-        if user.id != user_id:
+        if user.id != data.user_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para eliminar el perfil de otro usuario")
         
+    # Verificar si el usuario existe
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Verificar si el usuario ya está desactivado
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="El perfil ya está desactivado")
+        
     user.is_active = False
+    user.token = None
     db.commit()
     db.refresh(user)
+    
+    accion = UserAction(
+        user_id=user.id,
+        action=ActionType.desactivado,
+        reason=data.reason
+    )
+    db.add(accion)
+    db.commit()
+    db.refresh(accion)
+    
+    # Enviar un correo de notificacion al usuario
+    send_email_background(
+        background_tasks,
+        subject="Desactivacion de cuenta",
+        email_to=user.email,
+        template_name="deactivate_account.html",
+        body={
+            "username": user.name,
+            "support_email": userInfo.email,
+            "support_url": f"{settings.URL_FRONTEND}/#/?support=true",
+            "year": settings.CURRENT_TIME.year
+        }
+    )
              
     return {"msg": "Perfil desactivado exitosamente"}
 
 
-@router.put("/user/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/<user_id>
+@router.put("/user/{user_id}", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/<user_id>
 def update_user_profile(
     user_id: int,
     data: UpdateProfileSchema,
@@ -123,7 +189,7 @@ def update_user_profile(
     }
     
 
-@router.put("/user/change-password/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/user/change-password/<user_id>
+@router.put("/user/change-password/{user_id}", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/change-password/<user_id>
 def update_user_password(
     user_id: int,
     data: UpdatePasswordSchema,
@@ -166,7 +232,7 @@ def update_user_password(
     return {"msg": "Contraseña actualizada exitosamente"}
 
 
-@router.post("/create_role", status_code=status.HTTP_201_CREATED) # /api/v1/create_role
+@router.post("/create_role", status_code=status.HTTP_201_CREATED, tags=["Role Routes"]) # /api/v1/create_role
 def create_role(
     data: RoleRegisterSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -186,7 +252,7 @@ def create_role(
     return {"msg": "Rol creado exitosamente", "role": role.to_dict()}
     
     
-@router.get("/roles", status_code=status.HTTP_200_OK) # /api/v1/roles
+@router.get("/roles", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/roles
 def get_all_roles(
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
@@ -198,7 +264,7 @@ def get_all_roles(
     return roles_dicts
     
     
-@router.get("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
+@router.get("/role/{role_id}", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/role/<role_id>
 def get_role(
     role_id: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -212,7 +278,7 @@ def get_role(
     return role.to_dict()
     
 
-@router.put("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
+@router.put("/role/{role_id}", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/role/<role_id>
 def update_role(
     role_id: int,
     data: RoleRegisterSchema,
@@ -236,7 +302,7 @@ def update_role(
     return {"msg": "Rol actualizado exitosamente", "role": role.to_dict()}
 
 
-@router.delete("/role/{role_id}", status_code=status.HTTP_200_OK) # /api/v1/role/<role_id>
+@router.delete("/role/{role_id}", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/role/<role_id>
 def delete_role(
     role_id: int,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -257,7 +323,7 @@ def delete_role(
     return {"msg": "Rol eliminado exitosamente"}
 
  
-@router.post("/add_role", status_code=status.HTTP_200_OK) # /api/v1/add_role
+@router.post("/add_role", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/add_role
 def add_role_to_user(
     data: RoleUserSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -283,7 +349,7 @@ def add_role_to_user(
     return {"msg": "Rol agregado exitosamente"}
     
     
-@router.delete("/remove_role", status_code=status.HTTP_200_OK) # /api/v1/remove_role
+@router.delete("/remove_role", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/remove_role
 def remove_role_from_user(
     data: RoleUserSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -313,7 +379,7 @@ def remove_role_from_user(
     return {"msg": "Rol eliminado exitosamente"}
 
 
-@router.post("/send-verification-email/{user_id}", status_code=status.HTTP_200_OK) # /api/v1/send-verification-email/<user_id>
+@router.post("/send-verification-email/{user_id}", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/send-verification-email/<user_id>
 def send_verification_email(
     user_id: int,
     background_tasks: BackgroundTasks,

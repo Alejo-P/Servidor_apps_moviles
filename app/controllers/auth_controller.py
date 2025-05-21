@@ -28,7 +28,7 @@ from app.utils.verif_token import verify_secure_token, create_secure_token
 # Crear el router para la autenticación
 router = APIRouter()
     
-@router.post("/register", status_code=status.HTTP_201_CREATED)  # /api/v1/register
+@router.post("/register", status_code=status.HTTP_201_CREATED, tags=["Auth Routes"])  # /api/v1/register
 def register(
     data: RegisterSchema,
     background_tasks: BackgroundTasks,
@@ -67,7 +67,8 @@ def register(
     
     return {"msg": "Usuario registrado exitosamente"}
 
-@router.post("/verify-email/{token}", status_code=status.HTTP_200_OK)  # /api/v1/verify-email/<token>
+
+@router.post("/verify-email/{token}", status_code=status.HTTP_200_OK, tags=["Auth Routes"])  # /api/v1/verify-email/<token>
 def verify_email(
     token: str,
     background_tasks: BackgroundTasks,
@@ -112,7 +113,8 @@ def verify_email(
 
     return {"msg": "Correo verificado exitosamente"}
 
-@router.post("/login", status_code=status.HTTP_200_OK)  # /api/v1/login
+
+@router.post("/login", status_code=status.HTTP_200_OK, tags=["Auth Routes"])  # /api/v1/login
 def login(
     data: LoginSchema,
     request: Request,
@@ -192,7 +194,8 @@ def login(
         "user": user.to_dict()
     }
 
-@router.post("/refresh", status_code=status.HTTP_200_OK)
+
+@router.post("/refresh", status_code=status.HTTP_200_OK, tags=["Auth Routes"])  # /api/v1/refresh
 def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
     token = request.cookies.get("csrf_refresh_token")
     try:
@@ -242,7 +245,8 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
 #         "active_sessions": [token.to_dict() for token in tokens]
 #     })
 
-@router.post("/logout", status_code=status.HTTP_200_OK)
+
+@router.post("/logout", status_code=status.HTTP_200_OK, tags=["Auth Routes"])  # /api/v1/logout
 def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     refresh_token = request.cookies.get("csrf_refresh_token")
 
@@ -262,14 +266,16 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     response.delete_cookie("csrf_refresh_token", path="/")
     return {"msg": "Sesión cerrada exitosamente"}
 
-@router.get("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
+
+@router.get("/profile", status_code=status.HTTP_200_OK, tags=["Profile Routes"]) # /api/v1/profile
 def profile(
     userInfo: User = Depends(auth_user([ROLE_ALL])),
 ):
     """Devuelve los datos del perfil del usuario autenticado."""
     return userInfo.to_dict()
 
-@router.put("/profile", status_code=status.HTTP_200_OK) # /api/v1/profile
+
+@router.put("/profile", status_code=status.HTTP_200_OK, tags=["Profile Routes"]) # /api/v1/profile
 def update_profile(
     data: UpdateProfileSchema,
     userInfo: User = Depends(auth_user([ROLE_ALL])),
@@ -288,8 +294,9 @@ def update_profile(
         "msg": "Perfil actualizado exitosamente",
         "user": userInfo.to_dict()
     }
-    
-@router.put("/profile/update_password", status_code=status.HTTP_200_OK) # /api/v1/profile/update_password   
+
+
+@router.put("/profile/update_password", status_code=status.HTTP_200_OK, tags=["Profile Routes"]) # /api/v1/profile/update_password   
 def change_password(
     data: UpdatePasswordSchema,
     userInfo: User = Depends(auth_user([ROLE_ALL])),
@@ -319,7 +326,8 @@ def change_password(
     
     return {"msg": "Contraseña cambiada exitosamente"}
 
-@router.put("/profile/upload_avatar", status_code=status.HTTP_200_OK)
+
+@router.put("/profile/upload_avatar", status_code=status.HTTP_200_OK, tags=["Profile Routes"])  # /api/v1/profile/upload_avatar
 async def upload_avatar(
     form_data: AvatarUploadForm = Depends(AvatarUploadForm.as_form),
     file: UploadFile = File(...),

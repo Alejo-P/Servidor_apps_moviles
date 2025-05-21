@@ -4,17 +4,16 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Template
 import os
 
-from app.config.database import get_db
 from app.models.users_model import User
 from app.middlewares.auth import auth_user
 from urllib.parse import quote
 from app.config.constants import *
 from app.config.settings import settings
-from app.utils.verif_token import create_secure_token, verify_secure_token
+from app.utils.verif_token import create_secure_token
 
 view = APIRouter()
 
-@view.get("/email-template/{template_name}", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
+@view.get("/email-template/{template_name}", status_code=status.HTTP_200_OK, response_class=HTMLResponse, include_in_schema=False)
 def get_email_template(
     template_name: str,
     userInfo: User = Depends(auth_user([ROLE_DEV]))
@@ -61,7 +60,7 @@ def get_email_template(
             raise HTTPException(status_code=500, detail=f"Error al renderizar la plantilla: {str(e)}")
         
         
-@view.get("/render-template/{template_name}", status_code=status.HTTP_200_OK, response_class=HTMLResponse)
+@view.get("/render-template/{template_name}", status_code=status.HTTP_200_OK, response_class=HTMLResponse, include_in_schema=False)
 def render_template(
     template_name: str,
     request: Request,

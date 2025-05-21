@@ -32,12 +32,37 @@ app = FastAPI(
     description="API para la gestión de documentos y códigos QR",
     version="1.0.0",
     docs_url="/docs",
-)
+    openapi_tags=[
+    {
+        "name": "Auth Routes",
+        "description": "Rutas relacionadas con la autenticación y autorización"
+    },
+    {
+        "name": "Profile Routes",
+        "description": "Rutas para la gestión de perfiles de usuario"
+    },
+    {
+        "name": "File Routes",
+        "description": "Rutas para la gestión de archivos"
+    },
+    {
+        "name": "QR Routes",
+        "description": "Rutas para la gestión de códigos QR"
+    },
+    {
+        "name": "Admin Routes",
+        "description": "Rutas para la administración del sistema"
+    },
+    {
+        "name": "Role Routes",
+        "description": "Rutas para la gestión de roles y permisos"
+    }
+])
 
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.URL_FRONTEND],  # Cambia esto por los dominios permitidos
+    allow_origins=[settings.URL_FRONTEND],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -53,7 +78,7 @@ app.include_router(auth_controller.router, prefix="/api/v1")
 app.include_router(admin_controller.router, prefix="/api/v1")
 app.include_router(email_template.view, prefix="/api/v1")
 
-@app.get("/", tags=["Root"])
+@app.get("/", include_in_schema=False)
 async def read_root():
     return {"message": "Bienvenido a la API de DocTools. Visita /docs para la documentación."}
 

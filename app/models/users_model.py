@@ -21,6 +21,7 @@ class User(Base):
     roles = relationship("Role", secondary=user_roles, backref="users")
     avatar = relationship("AvatarImage", back_populates="users")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    actions = relationship("UserAction", back_populates="user", cascade="all, delete-orphan")
     
     def __init__(self, name, email, password):
         self.name = name
