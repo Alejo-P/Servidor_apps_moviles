@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config.settings import settings
 from app.controllers import files_controller, qr_controller, auth_controller, admin_controller
+from app.routes import socket_routes
 from app.views import email_template
 from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
@@ -77,6 +78,9 @@ app.include_router(qr_controller.router, prefix="/api/v1")
 app.include_router(auth_controller.router, prefix="/api/v1")
 app.include_router(admin_controller.router, prefix="/api/v1")
 app.include_router(email_template.view, prefix="/api/v1")
+
+# Rutas de WebSocket
+app.include_router(socket_routes.router, prefix="/api/v1")
 
 @app.get("/", include_in_schema=False)
 async def read_root():

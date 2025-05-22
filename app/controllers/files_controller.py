@@ -13,6 +13,7 @@ from app.middlewares.auth import auth_user
 from app.config.constants import *
 from app.schemas.upload_file_schema import UploadFileSchema
 from app.config.settings import settings
+from app.sockets.websockets import manager
 
 # Crear el router
 router = APIRouter()
@@ -30,7 +31,7 @@ def get_unique_filename(filename):
 
 # Ruta para subir archivos
 @router.post("/upload", status_code=status.HTTP_201_CREATED, tags=["File Routes"]) # /api/v1/upload
-def upload_file(
+async def upload_file(
     file: UploadFileSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
@@ -89,6 +90,20 @@ def upload_file(
         "is_active": userInfo.is_active
     }
     file_data["qr_code"] = None
+    
+    # Enviar notificación a través de WebSocket
+    if file_record:
+        await manager.broadcast({
+            "event": "file_uploaded",
+            "file_data": file_data,
+            "message": "Archivo subido",
+            "user": {
+                "id": userInfo.id,
+                "name": userInfo.name,
+                "roles": [role.name for role in userInfo.roles],
+                "is_active": userInfo.is_active
+            }
+        })
     
     return {
         "msg": "Archivo cargado exitosamente",
