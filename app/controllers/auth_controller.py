@@ -24,6 +24,7 @@ from app.utils.jwt_handler import create_access_token, create_refresh_token, ver
 from app.utils.parse import parse_date
 from app.utils.ua_parser import get_device_info
 from app.utils.verif_token import verify_secure_token, create_secure_token
+from app.sockets.websockets import manager
 
 # Crear el router para la autenticación
 router = APIRouter()
@@ -115,7 +116,7 @@ def verify_email(
 
 
 @router.post("/login", status_code=status.HTTP_200_OK, tags=["Auth Routes"])  # /api/v1/login
-def login(
+async def login(
     data: LoginSchema,
     request: Request,
     response: Response,
@@ -152,6 +153,20 @@ def login(
     db.add(refresh_token_db)
     db.commit()
     db.refresh(refresh_token_db)
+    
+    # Enviar una notificacion de que el usuario esta logueado y activo en la pagina (WebSocket)
+    await manager.broadcast({
+        "event": "user_login",
+        "data": {
+            "user_id": user.id,
+            "username": user.name,
+            "roles": roles,
+            "device": device_info["device"],
+            "os": device_info["os"],
+            "browser": device_info["browser"],
+            "location": "Desconocida"
+        }
+    }, user_id=user.id, exclude=[user.id], roles=[ROLE_ADMIN])
     
     # Enviar un correo de verificación de sesión
     send_email_background(

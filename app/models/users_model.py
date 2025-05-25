@@ -16,6 +16,7 @@ class User(Base):
     token = Column(String(255), nullable=True, unique=True, default=None)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
+    is_connected = Column(Boolean, default=False) # Indica si el usuario está conectado
 
     # roles -> Lista de roles del usuario 
     roles = relationship("Role", secondary=user_roles, backref="users")
@@ -39,6 +40,7 @@ class User(Base):
             "email": self.email,
             "is_active": self.is_active,
             "is_verified": self.is_verified,
+            "is_connected": self.is_connected,
             "avatar": self.avatar.to_dict() if self.avatar else None,
             "roles": [role.to_dict()["name"] for role in self.roles],
             "actions": [action.to_dict() for action in self.actions]

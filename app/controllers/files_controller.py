@@ -60,10 +60,19 @@ async def upload_file(
         filename = get_unique_filename(filename)
         filepath = os.path.join(env.UPLOAD_FOLDER, filename)
         
+    if not file.filebase64:
+        raise HTTPException(status_code=400, detail="No se envió el archivo en base64")
+    
+    # Verificar si el archivo base64 es válido
+    try:
+        base64.b64decode(file.filebase64)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="El archivo base64 no es válido")
+        
     # Guardar el archivo en el servidor
     with open(filepath, "wb") as f:
         f.write(
-            base64.b64decode(file.filebase64) if file.filebase64 else file.file.read()
+            base64.b64decode(file.filebase64)
         )
     
     # Crear un registro en la base de datos
@@ -103,7 +112,7 @@ async def upload_file(
                 "roles": [role.name for role in userInfo.roles],
                 "is_active": userInfo.is_active
             }
-        })
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id])
     
     return {
         "msg": "Archivo cargado exitosamente",
@@ -113,7 +122,7 @@ async def upload_file(
 
 # Ruta para subir archivos (sin base64 y con multipart/form-data)
 @router.post("/upload-formdata", status_code=status.HTTP_201_CREATED, tags=["File Routes"]) # /api/v1/upload-formdata
-def upload_form(
+async def upload_form(
     file: UploadFile = File(...),
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
@@ -172,6 +181,20 @@ def upload_form(
         "is_active": userInfo.is_active
     }
     file_data["qr_code"] = None
+    
+    # Enviar notificación a través de WebSocket
+    if file_record:
+        await manager.broadcast({
+            "event": "file_uploaded",
+            "file_data": file_data,
+            "message": "Archivo subido",
+            "user": {
+                "id": userInfo.id,
+                "name": userInfo.name,
+                "roles": [role.name for role in userInfo.roles],
+                "is_active": userInfo.is_active
+            }
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id])
     
     return {
         "msg": "Archivo cargado exitosamente",
@@ -319,7 +342,7 @@ def list_files(
 
 # Ruta para eliminar un archivo
 @router.delete("/delete/file/{filename}", status_code=status.HTTP_200_OK, tags=["File Routes"]) # /api/v1/delete/file/<filename>
-def delete_file(
+async def delete_file(
     filename:str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
@@ -355,6 +378,21 @@ def delete_file(
 
     db.delete(file_record)
     db.commit()
+    
+    # Enviar notificación a través de WebSocket
+    if file_record:
+        await manager.broadcast({
+            "event": "file_deleted",
+            "file_id": file_record.id,
+            "filename": filename,
+            "message": "Archivo eliminado",
+            "user": {
+                "id": userInfo.id,
+                "name": userInfo.name,
+                "roles": [role.name for role in userInfo.roles],
+                "is_active": userInfo.is_active
+            }
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id])
 
     return {
         "msg": "Archivo eliminado exitosamente",
@@ -364,7 +402,7 @@ def delete_file(
 
 # Ruta para eliminar todos los archivos
 @router.delete("/delete/all", status_code=status.HTTP_200_OK, tags=["File Routes"]) # /api/v1/delete/all
-def delete_all_files(
+async def delete_all_files(
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
@@ -374,6 +412,8 @@ def delete_all_files(
     """
     user_id = userInfo.id
     user_roles = [role.name for role in userInfo.roles]
+    files_ids = []
+    qrs_ids = []
     # Verificar si el usuario es admin o no
     if ROLE_ADMIN not in user_roles:
         files_records = db.query(FileModel).filter_by(uploaded_by=user_id).all()
@@ -395,10 +435,26 @@ def delete_all_files(
                     os.remove(qr_record.filepath)
                 db.delete(qr_record)
                 db.commit()
-
+                qrs_ids.append(qr_record.id)
+                
+        # Eliminar el archivo de la base de datos
         db.delete(archivo)
         db.commit()
+        files_ids.append(archivo.id)
+        
+    # Enviar notificación a través de WebSocket
+    await manager.broadcast({
+        "event": "all_files_deleted",
+        "files_ids": files_ids,
+        "qrs_ids": qrs_ids,
+        "message": "Todos los archivos han sido eliminados",
+        "user": {
+            "id": userInfo.id,
+            "name": userInfo.name,
+            "roles": [role.name for role in userInfo.roles],
+            "is_active": userInfo.is_active
+        }
+    }, roles=[ROLE_ADMIN], exclude=[userInfo.id])
     
-    return {
-        "msg": "Archivos eliminados exitosamente"
-    }
+    # Enviar respuesta
+    return {"msg": "Archivos eliminados exitosamente"}
