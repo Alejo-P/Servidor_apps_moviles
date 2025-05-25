@@ -383,8 +383,10 @@ async def delete_file(
     if file_record:
         await manager.broadcast({
             "event": "file_deleted",
-            "file_id": file_record.id,
-            "filename": filename,
+            "data": {
+                "file_id": file_record.id,
+                "filename": filename,
+            },
             "message": "Archivo eliminado",
             "user": {
                 "id": userInfo.id,
@@ -445,8 +447,10 @@ async def delete_all_files(
     # Enviar notificación a través de WebSocket
     await manager.broadcast({
         "event": "all_files_deleted",
-        "files_ids": files_ids,
-        "qrs_ids": qrs_ids,
+        "data": {
+            "files_ids": files_ids,
+            "qrs_ids": qrs_ids
+        },
         "message": "Todos los archivos han sido eliminados",
         "user": {
             "id": userInfo.id,

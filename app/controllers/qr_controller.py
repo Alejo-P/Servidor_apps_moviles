@@ -15,6 +15,7 @@ from app.models.users_model import User
 from app.middlewares.auth import auth_user
 from app.config.constants import *
 from app.schemas.qr_schema import QRCodeSchema
+from app.sockets.websockets import manager
 
 # Crear el router para los códigos QR
 router = APIRouter()
@@ -39,7 +40,7 @@ def add_icon_to_qr(qr_img, icon_img):
 
 # Ruta para generar un código QR con icono opcional
 @router.post("/qr", status_code=status.HTTP_200_OK, tags=["QR Routes"])  # /api/v1/qr
-def generate_qr(
+async def generate_qr(
     form_data: QRCodeSchema = Depends(QRCodeSchema.as_form),  # <-- ahora traemos 'text' y 'name' juntos
     icon: UploadFile = File(None),
     userInfo: User = Depends(auth_user([ROLE_ALL])),
@@ -102,6 +103,20 @@ def generate_qr(
         qr_data["attached_file"] = None  # No hay archivo adjunto
         qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{filename}"
         qr_data["file_type"] = "qr_code"
+        
+        # Enviar notificación a través de WebSocket
+        if qr_data:
+            await manager.broadcast({
+                "event": "qr_created",
+                "qr_data": qr_data,
+                "message": "Código QR creado exitosamente",
+                "user": {
+                    "id": userInfo.id,
+                    "name": userInfo.name,
+                    "roles": [role.name for role in userInfo.roles],
+                    "is_active": userInfo.is_active
+                }
+            }, roles=[ROLE_ADMIN, ROLE_USER], exclude=[user_id])
 
         return {
             "msg": "Código QR generado exitosamente",
@@ -122,7 +137,7 @@ def generate_qr(
 
 # Ruta para generar un código QR (A partir de un archivo)
 @router.post("/qr/file/{filename}", status_code=status.HTTP_200_OK, tags=["QR Routes"]) # /api/v1/qr/file/<filename>
-def generate_qr_from_file(
+async def generate_qr_from_file(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
@@ -186,7 +201,22 @@ def generate_qr_from_file(
         }
         qr_data["url"] = f"{settings.BASE_URL + settings.API_V1_STR}/qr/view/{qr_entry.filename}"
         qr_data["file_type"] = "qr_code"
-
+        
+        # Enviar notificación a través de WebSocket
+        if qr_data:
+            await manager.broadcast({
+                "event": "qr_generated",
+                "qr_data": qr_data,
+                "message": "Código QR generado exitosamente",
+                "user": {
+                    "id": userInfo.id,
+                    "name": userInfo.name,
+                    "roles": [role.name for role in userInfo.roles],
+                    "is_active": userInfo.is_active
+                }
+            }, roles=[ROLE_ADMIN, ROLE_USER], exclude=[user_id])
+        
+        # Devolver la respuesta
         return {
             "msg": "Código QR generado exitosamente",
             "qr": qr_data
@@ -344,7 +374,7 @@ def list_qrs(
 
 # Ruta para eliminar un código QR
 @router.delete("/qr/{filename}", status_code=status.HTTP_200_OK, tags=["QR Routes"])  # /api/v1/qr/<filename>
-def delete_qr(
+async def delete_qr(
     filename: str,
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
@@ -379,6 +409,22 @@ def delete_qr(
     if qr_entry:
         db.delete(qr_entry)
         db.commit()
+        
+    # Enviar notificación a través de WebSocket
+    await manager.broadcast({
+        "event": "qr_deleted",
+        "data": {
+            "qr_id": qr_entry.id,
+            "filename": filename
+        },
+        "message": "Código QR eliminado exitosamente",
+        "user": {
+            "id": userInfo.id,
+            "name": userInfo.name,
+            "roles": [role.name for role in userInfo.roles],
+            "is_active": userInfo.is_active
+        }
+    }, roles=[ROLE_ADMIN, ROLE_USER], exclude=[user_id])
 
     return {
         "msg": "Código QR eliminado exitosamente"
@@ -387,7 +433,7 @@ def delete_qr(
 
 # Ruta para eliminar todos los códigos QR
 @router.delete("/qrs", status_code=status.HTTP_200_OK, tags=["QR Routes"])  # /api/v1/qrs
-def delete_all_qrs(
+async def delete_all_qrs(
     userInfo: User = Depends(auth_user([ROLE_ADMIN, ROLE_USER])),
     db: Session = Depends(get_db)
 ):
@@ -398,6 +444,7 @@ def delete_all_qrs(
     # Verificar si el usuario está autenticado
     user_id = userInfo.id
     user_roles = [role.name for role in userInfo.roles]
+    qrs_ids = []
     # Verificar si el usuario tiene el rol de admin
     if ROLE_ADMIN in user_roles:
         # Si el usuario es admin, puede eliminar cualquier QR
@@ -414,6 +461,7 @@ def delete_all_qrs(
         if os.path.exists(qr_entry.filepath):
             # Eliminar el archivo
             os.remove(qr_entry.filepath)
+            qrs_ids.append(qr_entry.id)
         
         # Eliminar el registro de la base de datos
         # Verificar si el QR tiene un archivo adjunto
@@ -426,7 +474,23 @@ def delete_all_qrs(
         if qr_entry:
             db.delete(qr_entry)
             db.commit()
-
+            
+    # Enviar notificación a través de WebSocket
+    await manager.broadcast({
+        "event": "all_qrs_deleted",
+        "data": {
+            "qrs_ids": qrs_ids
+        },
+        "message": "Todos los códigos QR han sido eliminados",
+        "user": {
+            "id": userInfo.id,
+            "name": userInfo.name,
+            "roles": [role.name for role in userInfo.roles],
+            "is_active": userInfo.is_active
+        }
+    }, roles=[ROLE_ADMIN, ROLE_USER], exclude=[user_id])
+    
+    # Devolver la respuesta
     return {
         "msg": "Todos los códigos QR eliminados exitosamente"
     }
