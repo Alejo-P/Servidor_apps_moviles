@@ -15,6 +15,7 @@ from app.schemas.role_register_schema import RoleRegisterSchema
 from app.schemas.update_profile_schema import UpdateProfileSchema, UpdatePasswordSchema
 from app.utils.verif_token import verify_secure_token, create_secure_token
 from app.config.settings import settings
+from app.sockets.websockets import manager
 
 router = APIRouter()
 
@@ -49,7 +50,7 @@ def get_user_profile(
 
 
 @router.post("/user/activate", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/activate
-def activate_user_profile(
+async def activate_user_profile(
     data: ModifyUserSchema,
     background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -97,12 +98,20 @@ def activate_user_profile(
             "year": settings.CURRENT_TIME.year
         }
     )
+    
+    # Enviar notificación a través de WebSocket
+    if user:
+        await manager.broadcast({
+            "event": "user_activated",
+            "user_id": user.id,
+            "message": "Tu cuenta ha sido activada exitosamente"
+        }, roles=[ROLE_ADMIN], exclude=[user.id])
              
     return {"msg": "Perfil activado exitosamente"}
 
 
 @router.post("/user/deactivate", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/deactivate
-def deactivate_user_profile(
+async def deactivate_user_profile(
     data: ModifyUserSchema,
     background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -152,6 +161,14 @@ def deactivate_user_profile(
             "year": settings.CURRENT_TIME.year
         }
     )
+    
+    # Enviar notificación a través de WebSocket
+    if user:
+        await manager.broadcast({
+            "event": "user_deactivated",
+            "user_id": user.id,
+            "message": "Tu cuenta ha sido desactivada"
+        }, roles=[ROLE_ADMIN], exclude=[user.id])
              
     return {"msg": "Perfil desactivado exitosamente"}
 
