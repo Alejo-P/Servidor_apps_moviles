@@ -39,6 +39,6 @@ class UserAction(Base):
             "user_id": self.user_id,
             "action": self.u_action.value,
             "reason": self.u_reason,
-            "created_at": self.created_at
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
         }
         

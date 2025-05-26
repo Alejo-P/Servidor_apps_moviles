@@ -105,7 +105,7 @@ async def activate_user_profile(
             "event": "user_activated",
             "user_id": user.id,
             "message": "Tu cuenta ha sido activada exitosamente"
-        }, roles=[ROLE_ADMIN], exclude=[user.id])
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id])
              
     return {"msg": "Perfil activado exitosamente"}
 
@@ -168,13 +168,13 @@ async def deactivate_user_profile(
             "event": "user_deactivated",
             "user_id": user.id,
             "message": "Tu cuenta ha sido desactivada"
-        }, roles=[ROLE_ADMIN], exclude=[user.id])
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
              
     return {"msg": "Perfil desactivado exitosamente"}
 
 
 @router.put("/user/{user_id}", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/<user_id>
-def update_user_profile(
+async def update_user_profile(
     user_id: int,
     data: UpdateProfileSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
@@ -199,6 +199,15 @@ def update_user_profile(
     user.email = data.email
     db.commit()
     db.refresh(user)
+    
+    # Enviar notificación a través de WebSocket
+    if user:
+        await manager.broadcast({
+            "event": "user_updated",
+            "user_id": user.id,
+            "user": user.to_dict(),
+            "message": "El perfil ha sido actualizado exitosamente"
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
     
     return {
         "msg": "Usuario actualizado exitosamente",
@@ -341,7 +350,7 @@ def delete_role(
 
  
 @router.post("/add_role", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/add_role
-def add_role_to_user(
+async def add_role_to_user(
     data: RoleUserSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
@@ -363,11 +372,20 @@ def add_role_to_user(
     db.commit()
     db.refresh(user)
     
+    # Enviar notificación a través de WebSocket
+    if user:
+        await manager.broadcast({
+            "event": "role_added",
+            "user_id": user.id,
+            "role_name": role.name,
+            "message": f"Se te ha asignado el rol de {role.name}"
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
+    
     return {"msg": "Rol agregado exitosamente"}
     
     
 @router.delete("/remove_role", status_code=status.HTTP_200_OK, tags=["Role Routes"]) # /api/v1/remove_role
-def remove_role_from_user(
+async def remove_role_from_user(
     data: RoleUserSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
     db: Session = Depends(get_db)
@@ -392,6 +410,15 @@ def remove_role_from_user(
     user.roles.remove(role)
     db.commit()
     db.refresh(user)
+    
+    # Enviar notificación a través de WebSocket
+    if user:
+        await manager.broadcast({
+            "event": "role_removed",
+            "user_id": user.id,
+            "role_name": role.name,
+            "message": f"Se te ha removido el rol de {role.name}"
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
     
     return {"msg": "Rol eliminado exitosamente"}
 

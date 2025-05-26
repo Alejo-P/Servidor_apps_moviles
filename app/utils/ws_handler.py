@@ -19,7 +19,7 @@ async def get_current_user_from_ws(websocket: WebSocket, db: Session = Depends(g
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token no encontrado en la cookie")
 
     try:
-        payload = verify_token(token, token_type="access") # esta función la tenés que tener implementada
+        payload = verify_token(token, token_type="access")
         user_id = int(payload.get("sub") or 0)
     except JWTError:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Token inválido")

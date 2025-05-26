@@ -53,19 +53,35 @@ class ConnectionManager:
         print(f"[WS] Conexiones activas: {len(self.active_connections)}")
         print(self.debug_active_connections())
 
-    async def broadcast(self, message: dict, *, roles: Optional[List[str]] = None, user_id: Optional[int] = None, exclude: List[int] = []):
+    async def broadcast(self, message: dict, *, roles: Optional[List[str]] = None, user_id: Optional[int] = None, exclude: List[int] = [], include: List[int] = []):
+        """
+        Enviar un mensaje a los usuarios conectados con opciones avanzadas:\n
+        - Si `include` está presente, solo se envía a esos user_id.
+        - Si no, se puede filtrar por roles o por un user_id específico.
+        :param message: El mensaje a enviar (como dict).
+        :param roles: Lista de roles que deben tener los usuarios para recibir el mensaje.
+        :param user_id: Si se especifica, solo se enviará al usuario con este ID.
+        :param exclude: Lista de IDs de usuarios a excluir del envío.
+        :param include: Lista de IDs de usuarios a incluir en el envío (ignora roles y user_id).
+        """
         data = json.dumps(message)
         print(f"[WS] Enviando mensaje: {data}")
-        print(self.debug_active_connections())
-        
-        # Enviar a todos los usuarios conectados
+        self.debug_active_connections()
+
         for conn in self.active_connections:
-            if conn.user_id in exclude:
-                continue
-            if roles and not any(role in conn.roles for role in roles):
-                continue
-            if user_id is not None and conn.user_id != user_id:
-                continue
+            # Si hay lista "include", solo enviamos a quienes están ahí (y no estén excluidos)
+            if include:
+                if conn.user_id not in include or conn.user_id in exclude:
+                    continue
+            else:
+                # Si no está en include, aplica filtros normales
+                if conn.user_id in exclude:
+                    continue
+                if user_id is not None and conn.user_id != user_id:
+                    continue
+                if roles and not any(role in conn.roles for role in roles):
+                    continue
+
             try:
                 print(f"[WS] Enviando a usuario {conn.user_id}")
                 await conn.websocket.send_text(data)

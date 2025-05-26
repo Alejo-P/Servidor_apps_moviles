@@ -154,7 +154,7 @@ async def login(
     db.commit()
     db.refresh(refresh_token_db)
     
-    # Enviar una notificacion de que el usuario esta logueado y activo en la pagina (WebSocket)
+    # Enviar notificación a través de WebSocket
     await manager.broadcast({
         "event": "user_login",
         "data": {
@@ -166,7 +166,7 @@ async def login(
             "browser": device_info["browser"],
             "location": "Desconocida"
         }
-    }, user_id=user.id, exclude=[user.id], roles=[ROLE_ADMIN])
+    }, exclude=[user.id], roles=[ROLE_ADMIN])
     
     # Enviar un correo de verificación de sesión
     send_email_background(
@@ -269,6 +269,12 @@ def logout(request: Request, response: Response, db: Session = Depends(get_db)):
         if refresh_token:
             payload = verify_token(refresh_token)
             user_id = int(payload.get("sub"))
+            
+            # Marcar al usuario como desconectado
+            user = db.query(User).filter_by(id=user_id).first()
+            if user:
+                user.is_connected = False
+                db.commit()
 
             db_token = db.query(RefreshToken).filter_by(token=refresh_token, user_id=user_id).first()
             if db_token:
@@ -291,7 +297,7 @@ def profile(
 
 
 @router.put("/profile", status_code=status.HTTP_200_OK, tags=["Profile Routes"]) # /api/v1/profile
-def update_profile(
+async def update_profile(
     data: UpdateProfileSchema,
     userInfo: User = Depends(auth_user([ROLE_ALL])),
     db: Session = Depends(get_db)
@@ -304,6 +310,14 @@ def update_profile(
     userInfo.email = data.email
     db.commit()
     db.refresh(userInfo)
+    
+    # Enviar notificación a través de WebSocket
+    await manager.broadcast({
+        "event": "user_updated",
+        "user_id": userInfo.id,
+        "user": userInfo.to_dict(),
+        "message": "Perfil actualizado"
+    }, roles=[ROLE_ADMIN], exclude=[userInfo.id])
     
     return {
         "msg": "Perfil actualizado exitosamente",
@@ -404,8 +418,11 @@ async def upload_avatar(
             image = Image.open(io.BytesIO(file_content))
             if image.width != image.height:
                 raise HTTPException(status_code=400, detail="La imagen debe ser cuadrada (mismo ancho y alto)")
-        except Exception:
-            raise HTTPException(status_code=400, detail="No se pudo analizar la imagen para validar dimensiones")
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                raise e
+            else:
+                raise HTTPException(status_code=400, detail="No se pudo analizar la imagen para validar dimensiones")
 
         file.file.seek(0)
 
@@ -426,6 +443,14 @@ async def upload_avatar(
         user.avatar_id = new_avatar.id
         db.commit()
         db.refresh(user)
+        
+        # Enviar notificación a través de WebSocket
+        await manager.broadcast({
+            "event": "avatar_updated",
+            "user_id": user.id,
+            "avatar": new_avatar.to_dict(),
+            "message": "Avatar actualizado exitosamente"
+        }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
 
         return {
             "msg": "Avatar subido exitosamente",
