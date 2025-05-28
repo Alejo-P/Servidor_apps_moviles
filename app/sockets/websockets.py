@@ -1,9 +1,13 @@
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 from typing import List, Optional
 import json
 from dataclasses import dataclass
 
-from app.models.users_model import User
+def _check_send_user(conn, roles_list, include_list, exclude_list):
+    if conn.user_id in exclude_list: return False
+    if any(role in conn.roles for role in roles_list): return True
+    if include_list and conn.user_id not in include_list: return False
+    return True
 
 @dataclass
 class WSConnection:
@@ -41,6 +45,7 @@ class ConnectionManager:
             print(f"Usuario: {conn.user_id}, Roles: {conn.roles}")
         print("==========================")
 
+    
     def disconnect(self, websocket: WebSocket):
         self.active_connections = [
             conn for conn in self.active_connections if conn.websocket != websocket
@@ -53,39 +58,53 @@ class ConnectionManager:
         print(f"[WS] Conexiones activas: {len(self.active_connections)}")
         print(self.debug_active_connections())
 
-    async def broadcast(self, message: dict, *, roles: Optional[List[str]] = None, user_id: Optional[int] = None, exclude: List[int] = [], include: List[int] = []):
+    async def broadcast(
+        self,
+        message: dict,
+        *,
+        roles: Optional[List[str]] = None,
+        user_id: Optional[int] = None,
+        exclude: List[int] = [],
+        include: List[int] = []
+    ):
         """
-        Enviar un mensaje a los usuarios conectados con opciones avanzadas:\n
-        - Si `include` está presente, solo se envía a esos user_id.
-        - Si no, se puede filtrar por roles o por un user_id específico.
-        :param message: El mensaje a enviar (como dict).
-        :param roles: Lista de roles que deben tener los usuarios para recibir el mensaje.
-        :param user_id: Si se especifica, solo se enviará al usuario con este ID.
-        :param exclude: Lista de IDs de usuarios a excluir del envío.
-        :param include: Lista de IDs de usuarios a incluir en el envío (ignora roles y user_id).
+        Enviar mensaje WebSocket con lógica clara de prioridad:
+
+        - Si `include` tiene usuarios, se les enviará sí o sí.
+        - Si `roles` o `user_id` están definidos, se usará para filtrar el resto.
+        - `exclude` siempre tiene la última palabra.
         """
+
         data = json.dumps(message)
         print(f"[WS] Enviando mensaje: {data}")
         self.debug_active_connections()
 
         for conn in self.active_connections:
-            # Si hay lista "include", solo enviamos a quienes están ahí (y no estén excluidos)
-            if include:
-                if conn.user_id not in include or conn.user_id in exclude:
-                    continue
-            else:
-                # Si no está en include, aplica filtros normales
-                if conn.user_id in exclude:
-                    continue
-                if user_id is not None and conn.user_id != user_id:
-                    continue
-                if roles and not any(role in conn.roles for role in roles):
-                    continue
+            should_send = _check_send_user(conn, roles or [], include or [], exclude)
 
-            try:
-                print(f"[WS] Enviando a usuario {conn.user_id}")
-                await conn.websocket.send_text(data)
-            except Exception as e:
-                print(f"[WS] Error al enviar a {conn.user_id}: {e}")
+            # # 👇 Prioridad 1: `include` tiene la última palabra (si está presente)
+            # if conn.user_id in include:
+            #     should_send = True
+
+            # # 👇 Prioridad 2: filtrar por roles o user_id, si no está en include
+            # elif include == []:
+            #     if user_id is not None:
+            #         should_send = conn.user_id == user_id
+            #     elif roles:
+            #         should_send = any(role in conn.roles for role in roles)
+            #     else:
+            #         should_send = True  # Sin filtros = enviar a todos
+
+            # # 👇 Siempre excluir si está en `exclude`
+            # if conn.user_id in exclude:
+            #     should_send = False
+
+            if should_send:
+                try:
+                    print(f"[WS] Enviando a usuario {conn.user_id}")
+                    await conn.websocket.send_text(data)
+                except Exception as e:
+                    print(f"[WS] Error al enviar a {conn.user_id}: {e}")
+
 
 manager = ConnectionManager()
