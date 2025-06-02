@@ -36,7 +36,7 @@ def get_email_template(
             template_content = file.read()
             
         # Crear un token de verificación (solo para el ejemplo)
-        token = create_secure_token(settings.SECRET_KEY, userInfo.email, expires_in_minutes=1)
+        token = create_secure_token(settings.SECRET_KEY, userInfo.email, expires_in_minutes=1) #type: ignore
 
         # Si quieres pasar datos personalizados:
         context = {

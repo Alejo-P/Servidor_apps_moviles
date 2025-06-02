@@ -11,10 +11,11 @@ from app.config.constants import *
 
 router = APIRouter()
 
-@router.websocket("/ws/notifications")
+@router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
     """
-    WebSocket endpoint for notifications.
+    WebSocket endpoint for real-time communication.
+    This endpoint handles user authentication, connection management, and message broadcasting.
     """
     print("🔗 Conexión WebSocket iniciada")
 

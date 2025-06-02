@@ -63,7 +63,6 @@ class ConnectionManager:
         message: dict,
         *,
         roles: Optional[List[str]] = None,
-        user_id: Optional[int] = None,
         exclude: List[int] = [],
         include: List[int] = []
     ):
@@ -81,30 +80,11 @@ class ConnectionManager:
 
         for conn in self.active_connections:
             should_send = _check_send_user(conn, roles or [], include or [], exclude)
-
-            # # 👇 Prioridad 1: `include` tiene la última palabra (si está presente)
-            # if conn.user_id in include:
-            #     should_send = True
-
-            # # 👇 Prioridad 2: filtrar por roles o user_id, si no está en include
-            # elif include == []:
-            #     if user_id is not None:
-            #         should_send = conn.user_id == user_id
-            #     elif roles:
-            #         should_send = any(role in conn.roles for role in roles)
-            #     else:
-            #         should_send = True  # Sin filtros = enviar a todos
-
-            # # 👇 Siempre excluir si está en `exclude`
-            # if conn.user_id in exclude:
-            #     should_send = False
-
             if should_send:
                 try:
                     print(f"[WS] Enviando a usuario {conn.user_id}")
                     await conn.websocket.send_text(data)
                 except Exception as e:
                     print(f"[WS] Error al enviar a {conn.user_id}: {e}")
-
 
 manager = ConnectionManager()
