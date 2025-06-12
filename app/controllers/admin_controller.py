@@ -374,6 +374,8 @@ async def add_role_to_user(
     
     # Enviar notificación a través de WebSocket
     if user:
+        await manager.update_conection(user.id, [role.name for role in user.roles])
+        
         await manager.broadcast({
             "event": "role_added",
             "user_id": user.id,
@@ -413,6 +415,8 @@ async def remove_role_from_user(
     
     # Enviar notificación a través de WebSocket
     if user:
+        await manager.update_conection(user.id, roles=[r.name for r in user.roles])
+        
         await manager.broadcast({
             "event": "role_removed",
             "user_id": user.id,
