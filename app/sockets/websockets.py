@@ -6,9 +6,9 @@ from dataclasses import dataclass
 def _check_send_user(conn, roles_list, include_list, exclude_list):
     print(f"[WS] Evaluando envío a {conn.user_id} con roles {conn.roles}")
     if conn.user_id in exclude_list: return False
-    if any(role in conn.roles for role in roles_list): return True
-    if include_list and conn.user_id not in include_list: return False
-    return True
+    elif roles_list and not any(role in conn.roles for role in roles_list): return False
+    elif include_list and conn.user_id not in include_list: return False
+    else: return True
 
 @dataclass
 class WSConnection:

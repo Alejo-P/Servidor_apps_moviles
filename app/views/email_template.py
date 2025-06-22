@@ -67,15 +67,12 @@ def render_template(
     userInfo: User = Depends(auth_user([ROLE_DEV]))
 ):
     try:
-        print("Entrando a render_template")
-        print(f"template_name: {template_name}")
-        print(f"request: {request}")
         file_name = secure_filename(template_name)
         if not file_name.endswith(".html"):
             raise HTTPException(status_code=400, detail="El archivo debe ser un HTML")
 
         if not os.path.exists(settings.EMAIL_TEMPLATES_FOLDER):
-            raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+            raise HTTPException(status_code=404, detail="No se encontró la carpeta de plantillas")
 
         template_path = os.path.join(settings.EMAIL_TEMPLATES_FOLDER, file_name)
         if not os.path.exists(template_path):
