@@ -1,6 +1,5 @@
 import os
 from fastapi import FastAPI, Request
-from fastapi.routing import APIRoute
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -14,11 +13,6 @@ from app.views import email_template
 from app.middlewares.logging_middleware import RequestLoggerMiddleware
 from app.config.database import Base, engine
 import app.services.cloudinary_config # noqa: F401 - Necesario para configurar Cloudinary
-
-from dotenv import load_dotenv
-
-# Cargar variables de entorno desde el archivo .env
-load_dotenv()
 
 # Crear carpetas necesarias si no existen
 os.makedirs(settings.UPLOAD_FOLDER, exist_ok=True)

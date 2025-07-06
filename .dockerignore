@@ -1,9 +1,9 @@
-/env/
-/qrcode/
-/uploads/
+env
+qrcode
+uploads
 .gitignore
 /__pycache__/
+/**/__pycache__/
 *.pyc
-
-/mysql
-.devcontainer/
+*.pyo
+.devcontainer
