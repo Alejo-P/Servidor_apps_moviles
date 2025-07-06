@@ -8,10 +8,10 @@ class AvatarImage(Base):
     __tablename__ = "avatar_images"
 
     id = Column(Integer, primary_key=True, index=True)
-    url = Column(String, nullable=False)
-    public_id = Column(String, nullable=False, unique=True)
-    hash_id = Column(String, nullable=False, unique=True)
-    format = Column(String, nullable=False)
+    url = Column(String(255), nullable=False)
+    public_id = Column(String(255), nullable=False, unique=True)
+    hash_id = Column(String(255), nullable=False, unique=True)
+    format = Column(String(255), nullable=False)
     width = Column(Integer)
     height = Column(Integer)
     created_at = Column(DateTime, default=settings.CURRENT_TIME, nullable=False)
