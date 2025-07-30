@@ -1,5 +1,6 @@
 from fastapi import BackgroundTasks
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from colorama import Fore, Style
 from urllib.parse import urlencode
 from app.config.constants import *
 from app.config.settings import settings
@@ -63,9 +64,9 @@ def send_email_background(background_tasks: BackgroundTasks, subject: str, email
     """
     # Para entornos de desarrollo, no se envía el correo
     if settings.ENV == ENV_DEVELOPMENT:
-        print(f"[DEV] Simulando envío de correo a: {email_to}")
-        print(f"[DEV] Asunto: {subject}")
-        print(f"[DEV] Cuerpo: {body}")
+        print(Fore.GREEN + f"[DEV] Simulando envío de correo a: {email_to}" + Style.RESET_ALL)
+        print(Fore.GREEN + f"[DEV] Asunto: {subject}" + Style.RESET_ALL)
+        print(Fore.GREEN + f"[DEV] Cuerpo: {body}" + Style.RESET_ALL)
         # Aqui se puede renderizar la vista del correo
         # Generar la URL de la plantilla con los parámetros de consulta
         
@@ -76,7 +77,7 @@ def send_email_background(background_tasks: BackgroundTasks, subject: str, email
         }
         url_template = _get_url_template(template_name, **data)
 
-        print(f"[DEV] Vista renderizada del correo: {url_template}")
+        print(Fore.YELLOW + f"[DEV] Vista renderizada del correo: {url_template}" + Style.RESET_ALL)
         return
     
     # Para entornos de producción, se envía el correo

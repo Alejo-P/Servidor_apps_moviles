@@ -142,7 +142,7 @@ async def login(
     access_token = create_access_token(subject=str(user.id))
     refresh_token = create_refresh_token(subject=str(user.id))
     device_info = get_device_info(request)
-    
+
     # Guardar el token de refresco en la base de datos
     refresh_token_db = RefreshToken(
         user_id=user.id,
@@ -163,8 +163,7 @@ async def login(
             "roles": roles,
             "device": device_info["device"],
             "os": device_info["os"],
-            "browser": device_info["browser"],
-            "location": "Desconocida"
+            "browser": device_info["browser"]
         }
     }, exclude=[user.id], roles=[ROLE_ADMIN])
     
@@ -181,7 +180,11 @@ async def login(
             "device": device_info["device"],
             "os": device_info["os"],
             "browser": device_info["browser"],
-            "location": "Desconocida"
+            "ip": request.client.host,
+            "location": {
+                "city": device_info.get("city", "Desconocida"),
+                "country": device_info.get("country", "Desconocido")
+            }
         }
     )
 

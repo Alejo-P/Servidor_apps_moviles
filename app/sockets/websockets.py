@@ -1,10 +1,11 @@
 from fastapi import WebSocket
-from typing import List, Optional
+from colorama import Fore, Style
+from typing import List, Dict, Optional, Set
 import json
 from dataclasses import dataclass
 
 def _check_send_user(conn, roles_list, include_list, exclude_list):
-    print(f"[WS] Evaluando envío a {conn.user_id} con roles {conn.roles}")
+    print(Fore.YELLOW + f"[WS] Evaluando envío a {conn.user_id} con roles {conn.roles}")
     if conn.user_id in exclude_list: return False
     elif roles_list and not any(role in conn.roles for role in roles_list): return False
     elif include_list and conn.user_id not in include_list: return False
@@ -19,6 +20,8 @@ class WSConnection:
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WSConnection] = []
+        self.channels: Dict[str, Set[int]] = {}  # canal -> user_ids
+        self.subscriptions: Dict[int, Set[str]] = {}  # user_id -> eventos
 
     async def connect(self, websocket: WebSocket, user_id: int, roles: List[str]):
         await self.disconnect_by_user(user_id)
@@ -74,6 +77,26 @@ class ConnectionManager:
         
         print(f"[WS] Conexiones activas: {len(self.active_connections)}")
         print(self.debug_active_connections())
+        
+    def subscribe(self, user_id: int, event: str):
+        if user_id not in self.subscriptions:
+            self.subscriptions[user_id] = set()
+        self.subscriptions[user_id].add(event)
+        print(f"[WS] Usuario {user_id} suscrito a evento '{event}'")
+
+    def unsubscribe(self, user_id: int, event: str):
+        if user_id in self.subscriptions:
+            self.subscriptions[user_id].discard(event)
+
+    def join_channel(self, user_id: int, channel: str):
+        if channel not in self.channels:
+            self.channels[channel] = set()
+        self.channels[channel].add(user_id)
+        print(f"[WS] Usuario {user_id} unido al canal '{channel}'")
+
+    def leave_channel(self, user_id: int, channel: str):
+        if channel in self.channels:
+            self.channels[channel].discard(user_id)
 
     async def broadcast(
         self,
@@ -107,5 +130,33 @@ class ConnectionManager:
                     await conn.websocket.send_text(data)
                 except Exception as e:
                     print(f"[WS] Error al enviar a {conn.user_id}: {e}")
+    
+    async def broadcast_event(
+        self,
+        event: str,
+        message: dict,
+        channel: Optional[str] = None,
+        include: Optional[List[int]] = None
+    ):
+        include = include or []
+        data = json.dumps(message)
+        target_users = set(include)
+
+        # Si hay canal, agregamos a sus miembros
+        if channel and channel in self.channels: 
+            target_users.update(self.channels[channel])
+        else:
+            # Si no se especificó canal, todos son candidatos
+            target_users.update(conn.user_id for conn in self.active_connections)
+
+        for conn in self.active_connections:
+            if conn.user_id in target_users:
+                subs = self.subscriptions.get(conn.user_id, set())
+                if event in subs or conn.user_id in include:
+                    try:
+                        await conn.websocket.send_text(data)
+                        print(f"[WS] Enviado a {conn.user_id}: {event}")
+                    except Exception as e:
+                        print(f"[WS] Error al enviar a {conn.user_id}: {e}")
 
 manager = ConnectionManager()

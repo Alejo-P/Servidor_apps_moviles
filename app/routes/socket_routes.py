@@ -67,3 +67,13 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
             await websocket.close(code=1011)  # 1011 = Internal Error
         except:
             pass
+        
+@router.get("/ws/debug")
+async def get_ws_state():
+    return [
+        {
+            "user_id": conn.user_id,
+            "roles": conn.roles
+        }
+        for conn in manager.active_connections
+    ]

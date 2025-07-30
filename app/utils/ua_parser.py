@@ -27,5 +27,5 @@ def get_device_info(request: Request):
         "device": _get_device(user_agent),
         "is_mobile": user_agent.is_mobile,
         "is_tablet": user_agent.is_tablet,
-        "is_pc": user_agent.is_pc,
+        "is_pc": user_agent.is_pc
     }
