@@ -376,12 +376,18 @@ async def add_role_to_user(
     if user:
         await manager.update_conection(user.id, [role.name for role in user.roles])
         
-        await manager.broadcast({
-            "event": "role_added",
-            "user_id": user.id,
-            "role_name": role.name,
-            "message": f"Se te ha asignado el rol de {role.name}"
-        }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
+        await manager.broadcast_event(
+            event="role_added",
+            message={
+                "event": "role_added",
+                "user_id": user.id,
+                "role_name": role.name,
+                "by": userInfo.id,
+                "message": f"Se te ha asignado el rol de {role.name}"
+            },
+            channel="admin_notifications",
+            include=[user.id]  # el usuario afectado siempre lo recibe
+        )
     
     return {"msg": "Rol agregado exitosamente"}
     
@@ -417,13 +423,19 @@ async def remove_role_from_user(
     if user:
         await manager.update_conection(user.id, roles=[r.name for r in user.roles])
         
-        await manager.broadcast({
-            "event": "role_removed",
-            "user_id": user.id,
-            "role_name": role.name,
-            "message": f"Se te ha removido el rol de {role.name}"
-        }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
-    
+        await manager.broadcast_event(
+            event="role_removed",
+            message={
+                "event": "role_removed",
+                "user_id": user.id,
+                "role_name": role.name,
+                "by": userInfo.id,
+                "message": f"Se te ha removido el rol de {role.name}"
+            },
+            channel="admin_notifications",
+            include=[user.id]  # el usuario afectado siempre lo recibe
+        )
+
     return {"msg": "Rol eliminado exitosamente"}
 
 

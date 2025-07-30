@@ -28,7 +28,10 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
             user_id=user.id,
             roles=[role.name for role in user.roles]
         )
-        
+        if ROLE_ADMIN in [user_role.name for user_role in user.roles]:
+            # Si el usuario es admin, se une al canal de notificaciones de admin
+            manager.join_channel(user.id, "admin_notifications")
+
         db.query(User).filter(User.id == user.id).update({User.is_connected: True})
         db.commit()
         print(f"✅ Usuario conectado: {user.id}")
