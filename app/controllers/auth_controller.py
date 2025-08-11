@@ -134,11 +134,14 @@ async def login(
     if not user.is_verified:
         raise HTTPException(status_code=403, detail="El usuario no está verificado")
     
-    # Obtener los roles del usuario y almacenarlas en el token
+    # Obtener los roles del usuario
     roles = [role.name for role in user.roles]
     if not roles:
         raise HTTPException(status_code=403, detail="El usuario no tiene roles asignados")
     
+    if data.is_panel_admin and ROLE_ADMIN not in roles:
+        raise HTTPException(status_code=403, detail="El usuario no tiene permisos de administrador")
+
     access_token = create_access_token(subject=str(user.id))
     refresh_token = create_refresh_token(subject=str(user.id))
     device_info = get_device_info(request)
@@ -207,9 +210,17 @@ async def login(
         path="/"
     )
     
+    user_data = user.to_dict()
+    del user_data["is_connected"]    
+    del user_data["avatar"]["public_id"]
+    del user_data["avatar"]["format"]
+    del user_data["avatar"]["width"]
+    del user_data["avatar"]["height"]
+    del user_data["avatar"]["created_at"]
+
     return {
         "msg": "Inicio de sesión exitoso",
-        "user": user.to_dict()
+        "user": user_data
     }
 
 
