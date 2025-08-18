@@ -191,13 +191,14 @@ async def login(
         }
     )
 
+    IS_PROD = settings.ENV == "production"
     response.set_cookie(
         key="csrf_access_token",
         value=access_token,
         httponly=True,
         max_age=int(parse_date(settings.JWT_ACCESS_TOKEN_EXPIRES).total_seconds()),
-        secure=True,
-        samesite="lax",
+        secure=IS_PROD,
+        samesite="none" if IS_PROD else "lax",
         path="/"
     )
     response.set_cookie(
@@ -205,18 +206,13 @@ async def login(
         value=refresh_token,
         httponly=True,
         max_age=int(parse_date(settings.JWT_REFRESH_TOKEN_EXPIRES).total_seconds()),
-        secure=True,
-        samesite="lax",
+        secure=IS_PROD,
+        samesite="none" if IS_PROD else "lax",
         path="/"
     )
     
     user_data = user.to_dict()
-    del user_data["is_connected"]    
-    del user_data["avatar"]["public_id"]
-    del user_data["avatar"]["format"]
-    del user_data["avatar"]["width"]
-    del user_data["avatar"]["height"]
-    del user_data["avatar"]["created_at"]
+    del user_data["is_connected"]
 
     return {
         "msg": "Inicio de sesión exitoso",

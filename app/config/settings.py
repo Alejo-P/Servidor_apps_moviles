@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"  # Prefijo de la API
     URL_FRONTEND: str = os.getenv("URL_FRONTEND", "http://localhost:5173")  # URL del frontend
     URL_BACKEND: str = os.getenv("URL_BACKEND", "http://localhost:5000")  # URL del backend
+    URL_ADMIN_PANEL: str = os.getenv("URL_ADMIN_PANEL", "http://localhost:5174")  # URL del panel de administración
     ENV: str = os.getenv("ENV", "development")  # Entorno de la aplicación (development, production, etc.)
     
     BASE_DIR: str = os.path.expanduser("~") # Directorio base (donde se crearan y guardaran los archivos)

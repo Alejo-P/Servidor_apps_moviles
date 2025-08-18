@@ -34,6 +34,16 @@ class User(Base):
     
     def to_dict(self):
         """Devuelve un diccionario con los datos del usuario."""
+        avatar_info = self.avatar.to_dict() if self.avatar else None
+        if avatar_info:
+            del avatar_info["name"]
+            del avatar_info["used_by"]
+            del avatar_info["public_id"]
+            del avatar_info["format"]
+            del avatar_info["width"]
+            del avatar_info["height"]
+            del avatar_info["created_at"]
+
         return {
             "id": self.id,
             "name": self.name,
@@ -41,7 +51,7 @@ class User(Base):
             "is_active": self.is_active,
             "is_verified": self.is_verified,
             "is_connected": self.is_connected,
-            "avatar": self.avatar.to_dict() if self.avatar else None,
+            "avatar": avatar_info,
             "roles": [role.to_dict()["name"] for role in self.roles],
             "actions": [action.to_dict() for action in self.actions]
         }

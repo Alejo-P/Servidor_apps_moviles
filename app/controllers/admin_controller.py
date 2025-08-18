@@ -6,6 +6,7 @@ from app.config.database import get_db
 from app.config.mailer import send_email_background
 from app.models.roles_model import Role
 from app.models.users_model import User
+from app.models.avatarImages_model import AvatarImage
 from app.models.userAction_model import ActionType, UserAction
 from app.middlewares.auth import auth_user
 from app.config.constants import *
@@ -28,11 +29,7 @@ def get_all_profiles(
     users = db.query(User).all()
     users_dicts = [user.to_dict() for user in users]
 
-    # Separar al usuario autenticado
-    auth_user_dict = next((u for u in users_dicts if u["id"] == userInfo.id), None)
-    other_users = [u for u in users_dicts if u["id"] != userInfo.id]
-
-    return [auth_user_dict] + other_users if auth_user_dict else users_dicts
+    return users_dicts
 
 
 @router.get("/user/{user_id}", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/user/<user_id>
@@ -477,3 +474,18 @@ def send_verification_email(
     )
     
     return {"msg": "Correo de verificación enviado exitosamente"}
+
+
+@router.get("/avatars", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/avatars
+def get_all_avatars(
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Obtener todos los avatares de los usuarios."""
+    avatars = db.query(AvatarImage).all()
+    
+    data = []
+    for avatar in avatars:
+        data.append(avatar.to_dict())
+    
+    return data
