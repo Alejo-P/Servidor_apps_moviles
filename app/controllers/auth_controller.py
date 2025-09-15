@@ -34,6 +34,7 @@ def register(
     data: RegisterSchema,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    request: Request = None
 ):
     """Registra un nuevo usuario en la base de datos."""
     if db.query(User).filter_by(email=data.email).first():
@@ -55,6 +56,7 @@ def register(
     
     # Enviar correo de verificación
     send_email_background(
+        request,
         background_tasks,
         subject="Verificación de cuenta",
         email_to=str(user.email),
@@ -73,7 +75,8 @@ def register(
 def verify_email(
     token: str,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None
 ):
     payload = verify_secure_token(settings.SECRET_KEY, token)
     if not payload:
@@ -101,6 +104,7 @@ def verify_email(
     
     # Enviar correo de confirmación de verificación
     send_email_background(
+        request,
         background_tasks,
         subject="Verificación de cuenta exitosa",
         email_to=user.email,
@@ -172,6 +176,7 @@ async def login(
     
     # Enviar un correo de verificación de sesión
     send_email_background(
+        request,
         background_tasks,
         subject="Nueva sesión iniciada",
         email_to=user.email,
