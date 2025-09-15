@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from urllib.parse import quote
 
@@ -51,7 +51,8 @@ async def activate_user_profile(
     data: ModifyUserSchema,
     background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None
 ):
     """Activar el perfil del usuario."""
     user_roles = [role.name for role in userInfo.roles]
@@ -85,6 +86,7 @@ async def activate_user_profile(
     
     # Enviar un correo de notificacion al usuario
     send_email_background(
+        request,
         background_tasks,
         subject="Activacion de cuenta",
         email_to=user.email,
@@ -112,7 +114,8 @@ async def deactivate_user_profile(
     data: ModifyUserSchema,
     background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None
 ):
     """Desactivar el perfil del usuario."""
     user_roles = [role.name for role in userInfo.roles]
@@ -147,6 +150,7 @@ async def deactivate_user_profile(
     
     # Enviar un correo de notificacion al usuario
     send_email_background(
+        request,
         background_tasks,
         subject="Desactivacion de cuenta",
         email_to=user.email,
@@ -264,7 +268,6 @@ def create_role(
     """Crea un nuevo rol."""
     role = Role(
         name=data.role_name,
-        permissions=data.permissions,
         description=data.description
     )
     
@@ -441,7 +444,8 @@ def send_verification_email(
     user_id: int,
     background_tasks: BackgroundTasks,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None
 ):
     """Enviar un correo de verificación al usuario."""
     user = db.query(User).get(user_id)
@@ -462,6 +466,7 @@ def send_verification_email(
     
     # Envio del correo de verificación
     send_email_background(
+        request,
         background_tasks,
         subject="Verificación de cuenta",
         email_to=user.email,

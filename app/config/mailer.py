@@ -1,17 +1,21 @@
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, Request
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from colorama import Fore, Style
 from urllib.parse import urlencode
 from app.config.constants import *
 from app.config.settings import settings
+from app.utils.url_helper import base_url
 
-def _get_url_template(template_name: str, **kwargs):
+def _get_url_template(request: Request, template_name: str, **kwargs):
     """
     Generate a URL for the email template with query parameters.
     """
     query_params = urlencode(kwargs)
-    base_url = f"{settings.URL_BACKEND + settings.API_V1_STR}/render-template/{template_name}?{query_params}"
-    return base_url
+    url = base_url(
+        request,
+        f'{settings.API_V1_STR}/render-template/{template_name}?{query_params}'
+    )
+    return url
 
 mail_conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -26,7 +30,7 @@ mail_conf = ConnectionConfig(
     TEMPLATE_FOLDER=settings.EMAIL_TEMPLATES_FOLDER
 )
 
-async def send_email_async(subject: str, email_to: str, body: dict, template_name: str = 'email.html'):
+async def send_email_async(request: Request, subject: str, email_to: str, body: dict, template_name: str = 'email.html'):
     """
     Send an email asynchronously using FastAPI Mail.
     """
@@ -42,7 +46,7 @@ async def send_email_async(subject: str, email_to: str, body: dict, template_nam
             "email_to": email_to,
             **body
         }
-        url_template = _get_url_template(template_name, **data)
+        url_template = _get_url_template(request, template_name, **data)
         print(f"[DEV] Vista renderizada del correo: {url_template}")
         return
     
@@ -58,7 +62,7 @@ async def send_email_async(subject: str, email_to: str, body: dict, template_nam
     fm = FastMail(mail_conf)
     await fm.send_message(message, template_name=template_name)
 
-def send_email_background(background_tasks: BackgroundTasks, subject: str, email_to: str, body: dict, template_name: str = 'email.html'):
+def send_email_background(request: Request, background_tasks: BackgroundTasks, subject: str, email_to: str, body: dict, template_name: str = 'email.html'):
     """
     Send an email in the background using FastAPI's BackgroundTasks.
     """
@@ -75,7 +79,7 @@ def send_email_background(background_tasks: BackgroundTasks, subject: str, email
             "email_to": email_to,
             **body
         }
-        url_template = _get_url_template(template_name, **data)
+        url_template = _get_url_template(request, template_name, **data)
 
         print(Fore.YELLOW + f"[DEV] Vista renderizada del correo: {url_template}" + Style.RESET_ALL)
         return
