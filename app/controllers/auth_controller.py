@@ -68,7 +68,10 @@ def register(
         }
     )
     
-    return {"msg": "Usuario registrado exitosamente"}
+    return {
+        "msg": "Usuario registrado exitosamente",
+        "user": user.to_dict()
+    }
 
 
 @router.post("/verify-email/{token}", status_code=status.HTTP_200_OK, tags=["Auth Routes"])  # /api/v1/verify-email/<token>
