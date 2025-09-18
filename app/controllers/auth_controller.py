@@ -315,11 +315,33 @@ def profile(
 async def update_profile(
     data: UpdateProfileSchema,
     userInfo: User = Depends(auth_user([ROLE_ALL])),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None,
+    background_tasks: BackgroundTasks = None
 ):
     """Actualiza los datos del perfil del usuario autenticado."""
     if db.query(User).filter(User.email == data.email, User.id != userInfo.id).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
+    
+    if data.email != userInfo.email:
+        userInfo.is_verified = False
+        # Crear el token de verificación
+        token = create_secure_token(settings.SECRET_KEY, str(data.email))
+        userInfo.token = token
+        
+        # Enviar correo de verificación
+        send_email_background(
+            request,
+            background_tasks,
+            subject="Verificación de nuevo correo",
+            email_to=str(data.email),
+            template_name="verify_email.html",
+            body={
+                "username": userInfo.name,
+                "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={quote(token)}",
+                "year": settings.CURRENT_TIME.year
+            }
+        )
     
     userInfo.name = data.name
     userInfo.email = data.email

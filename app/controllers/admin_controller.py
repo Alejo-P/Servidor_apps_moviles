@@ -179,7 +179,9 @@ async def update_user_profile(
     user_id: int,
     data: UpdateProfileSchema,
     userInfo: User = Depends(auth_user([ROLE_ADMIN])),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None,
+    background_tasks: BackgroundTasks = None
 ):
     """Actualizar el perfil del usuario."""
     user_roles = [role.name for role in userInfo.roles]
@@ -194,6 +196,25 @@ async def update_user_profile(
     existing_user = db.query(User).filter(User.email == data.email, User.id != user.id).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="El correo ya está en uso por otro usuario")
+    
+    # Si el correo ha cambiado, enviar un correo de verificación
+    if user.email != data.email:
+        token = create_secure_token(settings.SECRET_KEY, data.email)
+        user.token = token
+        user.is_verified = False  # Marcar como no verificado hasta que confirme el nuevo correo
+        
+        send_email_background(
+            request,
+            background_tasks,
+            subject="Verificación de nuevo correo",
+            email_to=str(data.email),
+            template_name="verify_email.html",
+            body={
+                "username": user.name,
+                "verify_url": f"{settings.URL_FRONTEND}/#/?verify-email=true&token={quote(token)}",
+                "year": settings.CURRENT_TIME.year
+            }
+        )
     
     # Actualizar los datos del usuario    
     user.name = data.name
