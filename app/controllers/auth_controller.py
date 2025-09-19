@@ -515,3 +515,47 @@ async def upload_avatar(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al subir avatar: {str(e)}")
+    
+
+@router.delete("/profile/delete_avatar", status_code=status.HTTP_200_OK, tags=["Profile Routes"])  # /api/v1/profile/delete_avatar
+async def delete_avatar(
+    form_data: AvatarUploadForm = Depends(AvatarUploadForm.as_form),
+    userInfo: User = Depends(auth_user([ROLE_ALL])),
+    db: Session = Depends(get_db)
+):
+    """Elimina la imagen de perfil del usuario autenticado."""
+    user_id = userInfo.id
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Usuario no autenticado")
+
+    try:
+        requested_user_id = int(form_data.user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de usuario inválido")
+
+    user_roles = [roles.name for roles in userInfo.roles]
+    if ROLE_ADMIN in user_roles:
+        user = db.get(User, requested_user_id)
+    else:
+        if int(user_id) != requested_user_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso para cambiar el avatar de otro usuario")
+        user = db.get(User, user_id)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if not user.avatar_id:
+        raise HTTPException(status_code=400, detail="El usuario no tiene un avatar asignado")
+    
+    user.avatar_id = None
+    db.commit()
+    db.refresh(user)
+    
+    # Enviar notificación a través de WebSocket
+    await manager.broadcast({
+        "event": "avatar_deleted",
+        "user_id": user.id,
+        "message": "Avatar eliminado exitosamente"
+    }, roles=[ROLE_ADMIN], exclude=[userInfo.id], include=[user.id])
+
+    return {"msg": "Avatar eliminado exitosamente", "user_id": user.id}
