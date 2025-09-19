@@ -62,6 +62,8 @@ class Settings(BaseSettings):
     HOST: str = "127.0.0.1"
     MAX_FILE_SIZE_MB: int = 2
     ALLOWED_MIME_TYPES: list = ["image/jpeg", "image/png", "image/webp"]
+    MINIMUM_IMAGE_DIMENSIONS: tuple = (311, 311)  # Ancho y alto mínimos en píxeles
+    MAXIMUM_IMAGE_DIMENSIONS: tuple = (4096, 4096)  # Ancho y alto máximos en píxeles
     TIMEZONE: str = os.getenv("TIMEZONE", "UTC")  # Zona horaria por defecto
     
     # Configuración de Cloudinary

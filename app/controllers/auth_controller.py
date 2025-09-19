@@ -443,6 +443,7 @@ async def upload_avatar(
             db.refresh(user)
             return {
                 "msg": "Avatar asignado exitosamente (imagen ya existente)",
+                "user_id": user.id,
                 "avatar": existing_avatar.to_dict()
             }
 
@@ -457,7 +458,22 @@ async def upload_avatar(
         try:
             image = Image.open(io.BytesIO(file_content))
             if image.width != image.height:
-                raise HTTPException(status_code=400, detail="La imagen debe ser cuadrada (mismo ancho y alto)")
+                raise HTTPException(
+                    status_code=400,
+                    detail="La imagen debe ser cuadrada (mismo ancho y alto)"
+                )
+            
+            if image.width < settings.MINIMUM_IMAGE_DIMENSIONS[0] or image.height < settings.MINIMUM_IMAGE_DIMENSIONS[1]:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"La imagen es demasiado pequeña. Dimensiones mínimas: {settings.MINIMUM_IMAGE_DIMENSIONS[0]}x{settings.MINIMUM_IMAGE_DIMENSIONS[1]} píxeles"
+                )
+                
+            if image.width > settings.MAXIMUM_IMAGE_DIMENSIONS[0] or image.height > settings.MAXIMUM_IMAGE_DIMENSIONS[1]:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"La imagen es demasiado grande. Dimensiones máximas: {settings.MAXIMUM_IMAGE_DIMENSIONS[0]}x{settings.MAXIMUM_IMAGE_DIMENSIONS[1]} píxeles"
+                )
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise e
@@ -494,6 +510,7 @@ async def upload_avatar(
 
         return {
             "msg": "Avatar subido exitosamente",
+            "user_id": user.id,
             "avatar": new_avatar.to_dict()
         }
     except Exception as e:
