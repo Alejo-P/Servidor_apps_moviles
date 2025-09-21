@@ -512,6 +512,29 @@ def get_all_avatars(
     
     data = []
     for avatar in avatars:
-        data.append(avatar.to_dict())
-    
+        avatar_data = {
+            "id": avatar.id,
+            "name": avatar.name,
+            "url": avatar.url,
+            "width": avatar.width,
+            "height": avatar.height,
+            "created_at": avatar.created_at
+        }
+
+        data.append(avatar_data)
+
     return data
+
+
+@router.get("/avatar/{avatar_id}", status_code=status.HTTP_200_OK, tags=["Admin Routes"]) # /api/v1/avatar/<avatar_id>
+def get_avatar(
+    avatar_id: int,
+    userInfo: User = Depends(auth_user([ROLE_ADMIN])),
+    db: Session = Depends(get_db)
+):
+    """Obtener un avatar específico por su ID."""
+    avatar = db.query(AvatarImage).get(avatar_id)
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar no encontrado")
+
+    return avatar.to_dict()

@@ -6,6 +6,7 @@ from PIL import Image
 import io
 import hashlib
 import jwt
+import uuid
 
 from app.config.constants import *
 from app.config.database import get_db
@@ -429,6 +430,7 @@ async def upload_avatar(
 
     # Validar el archivo
     try:
+        print(file.filename)
         file_content = await file.read()
         
         # Calcular hash de la imagen
@@ -436,7 +438,6 @@ async def upload_avatar(
         
         # Buscar si ya existe ese hash en la base
         existing_avatar = db.query(AvatarImage).filter_by(hash_id=image_hash).first()
-        
         if existing_avatar:
             user.avatar_id = existing_avatar.id
             db.commit()
@@ -446,7 +447,14 @@ async def upload_avatar(
                 "user_id": user.id,
                 "avatar": existing_avatar.to_dict()
             }
-
+        
+        # Verificar si ya existe un avatar con el mismo nombre (muy raro que pase)
+        filename = file.filename
+        existing_file = db.query(AvatarImage).filter_by(name=filename).first()
+        if existing_file:
+            filename = f"{filename}_{uuid.uuid4().hex[:8]}"
+        
+        # Validar tamaño y tipo
         file_size_mb = len(file_content) / (1024 * 1024)
         if file_size_mb > settings.MAX_FILE_SIZE_MB:
             raise HTTPException(status_code=400, detail=f"El archivo supera el tamaño máximo permitido de {settings.MAX_FILE_SIZE_MB}MB")
@@ -485,6 +493,7 @@ async def upload_avatar(
         upload_result = cloudinary.uploader.upload(file.file, folder="avatars")
         new_avatar = AvatarImage(
             url=upload_result["secure_url"],
+            name=filename,
             public_id=upload_result["public_id"],
             hash_id=image_hash, # Guardamos el hash como identificador local
             format=upload_result["format"],

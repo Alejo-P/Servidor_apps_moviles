@@ -1,18 +1,14 @@
-import uuid
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.config.database import Base
 from app.config.settings import settings
 
-def generate_unique_name():
-    return f"avatar_{uuid.uuid4().hex[:12]}"
-
 class AvatarImage(Base):
     __tablename__ = "avatar_images"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), nullable=False, default=generate_unique_name)
+    name = Column(String(50), nullable=False)
     url = Column(String(255), nullable=False)
     public_id = Column(String(255), nullable=False, unique=True)
     hash_id = Column(String(255), nullable=False, unique=True)
@@ -23,8 +19,9 @@ class AvatarImage(Base):
 
     users = relationship("User", back_populates="avatar")
     
-    def __init__(self, url, public_id, hash_id, format, width=None, height=None):
+    def __init__(self, url, name, public_id, hash_id, format, width=None, height=None):
         self.url = url
+        self.name = name
         self.public_id = public_id
         self.hash_id = hash_id
         self.format = format
